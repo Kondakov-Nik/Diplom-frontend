@@ -1,0 +1,261 @@
+/* Главный контейнер */
+.homeContainer {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f0f5f5ce; /* Светлый фон, сочетающийся с бирюзовым оттенком хедера */
+  color: #3d4c5c; /* Темно-серый для текста */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 220vh;
+  padding: 30px;
+  border-radius: 13px;
+  box-sizing: border-box;
+}
+
+/* Hero Section (Приветствие) */
+.heroSection {
+  background: linear-gradient(135deg, rgb(126, 178, 184) 0%, #a8c3c8 100%); /* Градиент, сочетающийся с хедером */
+  color: #edf1c0; /* Цвет текста, подходящий к цвету хедера */
+  text-align: center;
+  padding: 100px 20px;
+  border-radius: 35px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2); /* Тень для глубины */
+  margin-bottom: 40px;
+}
+
+.heroTitle {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  letter-spacing: 1.5px;
+  color: #edf1c0; /* Цвет заголовка, чтобы сочетаться с фоном */
+}
+
+.heroSubtitle {
+  font-size: 18px;
+  margin-bottom: 40px;
+  color: rgba(237, 241, 192, 0.8); /* Мягкий светлый текст для подзаголовка */
+  line-height: 1.6;
+}
+
+.heroButtons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.registerButton, .loginButton {
+  padding: 15px 30px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 50px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.registerButton {
+  background-color: #ff7f50; /* Мягкий оранжево-коричневый */
+  color: #fff;
+  border: 2px solid #ff7f50;
+}
+
+.registerButton:hover {
+  background-color: #ff6347;
+  transform: translateY(-3px);
+}
+
+.loginButton {
+  background-color: #ff7f50;
+  color: #fff;
+  border: 2px solid #ff7f50;
+}
+
+.loginButton:hover {
+  background-color: #ff6347;
+  transform: translateY(-3px);
+}
+
+/* Блок с преимуществами */
+.featuresSection {
+  background-color: #f9f9f9; /* Белый фон, чтобы контрастировать с цветами */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 60px 20px;
+  border-radius: 25px;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.featuresTitle {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 40px;
+  color: #3d4c5c; /* Темный цвет для контраста */
+}
+
+.featuresList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 40px;
+}
+
+.featureItem {
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.featureItem:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+.featureIcon {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 25px;
+}
+
+.featureItem h3 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #3d4c5c; /* Цвет заголовков блока преимуществ */
+}
+
+.featureItem p {
+  font-size: 16px;
+  color: #777;
+  line-height: 1.5;
+}
+
+/* Шаги - Как это работает */
+.howItWorksSection {
+  padding: 80px 20px;
+  background-color: #f9f9f9; /* Белый фон, чтобы контрастировать с цветами */
+  text-align: center;
+  border-radius: 25px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  margin-bottom: 40px;
+}
+
+.howItWorksTitle {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 40px;
+  color: #3d4c5c; /* Цвет заголовка */
+}
+
+.howItWorksSteps {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.howItWorksStep {
+  width: 260px;
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.howItWorksStep:hover {
+  transform: translateY(-5px);
+}
+
+.howItWorksStep h3 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #3d4c5c;
+}
+
+.howItWorksStep p {
+  font-size: 16px;
+  color: #777;
+}
+
+/* Отзывы пользователей */
+.testimonialsSection {
+  padding: 60px 20px;
+  background: #f9f9f9;
+  text-align: center;
+  border-radius: 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  margin-bottom: 10px;
+}
+
+.testimonialsTitle {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 40px;
+  color: #3d4c5c;
+}
+
+.testimonialsList {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.testimonialItem {
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 15px;
+  width: 280px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.testimonialItem:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+.testimonialItem p {
+  font-size: 16px;
+  font-style: italic;
+  margin-bottom: 20px;
+  color: #666;
+}
+
+.testimonialItem h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2575fc; /* Используем синий оттенок для выделения */
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+  .featuresList {
+    grid-template-columns: 1fr;
+  }
+
+  .howItWorksSteps {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .howItWorksStep {
+    width: 90%;
+    margin: 0 auto;
+  }
+
+  .testimonialsList {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .testimonialItem {
+    width: 90%;
+    margin: 0 auto;
+  }
+}

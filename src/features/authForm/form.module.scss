@@ -1,0 +1,136 @@
+.form {
+  text-align: center;
+  & p {
+    margin-top: 1px;
+    margin-right: auto;
+    margin-left: 17px;
+    font-weight: 480;  /* Устанавливаем более жирный шрифт */
+  }
+  display: flex;
+  
+  flex-direction: column;
+  align-items: center;
+}
+
+.biba{
+  text-align: center; /* Центрирование текста */
+}
+
+.wrapper {
+  background-color: #f1f1f1;
+  padding-top: 4%;
+  padding: 4%;
+  height: 100%;
+  border-radius: 20px;
+  margin: -30px;
+}
+
+h1 {
+  color: #7eb2b8;
+  text-align: center;
+  font-size: 2.7rem;
+  margin-top: 10px; /* Отступ сверху */
+  margin-bottom: 20px; /* Отступ снизу */
+}
+
+h3 {
+  text-align: center; /* Центрирование текста */
+  font-size: 1.1rem; /* Уменьшаем размер текста, можно подставить нужный размер */
+  margin-top: 10px; /* Отступ сверху */
+  margin-bottom: 20px; /* Отступ снизу */
+}
+
+
+
+.window {
+  width: 366px;
+  height: auto;
+  margin: 0 auto;
+  padding-top: 25px;
+  padding-bottom: 2px;
+  border-radius: 30px;
+  background-color: #fff;}
+  
+
+
+.input {
+  background: #f4f6f8;
+  border-radius: 7px;
+  margin-right: 15px;
+  margin-left: 15px;
+  height: 36px;
+  width: 330px;
+  font-size: 16px;
+  border: none;
+}
+
+.submitBtn{
+  margin-right: 15px;
+  margin-left: 15px;
+  padding: 11px 86px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: #7eb2b8; /* Основной цвет для кнопки */
+  color: #fff;
+  border-radius: 13px;
+  border: none;
+  cursor: pointer;
+  margin: 12px 12px;
+  display: inline-block;
+  text-align: center;
+  box-sizing: border-box;
+} 
+
+/* Эффект при наведении */
+.submitBtn:hover {
+  background-color: #4768a4; /* Сменим цвет при наведении */
+  transform: translateY(-3px); /* Легкий подъем кнопки */
+}
+
+/* Эффект при фокусе */
+.submitBtn:focus {
+  outline: none; /* Убираем стандартную обводку при фокусе */
+  box-shadow: 0 0 10px rgba(255, 99, 71, 0.7); /* Добавляем тень при фокусе */
+}
+
+.error{
+  color:red;
+  font-size: 12px;
+  margin: 0;
+  height: 15px;
+}
+.hideError{
+  visibility: hidden;
+}
+
+/* Стили для кнопки переключения между входом и регистрацией */
+.toggleButton {
+  margin-right: 15px;
+  margin-left: 15px;
+  padding: 11px 147px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: #7eb2b8; /* Основной цвет для кнопки */
+  color: #fff;
+  border-radius: 13px;
+  border: none;
+  cursor: pointer;
+  margin: 12px 12px;
+  display: inline-block;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Эффект при наведении */
+.toggleButton:hover {
+  background-color: #4768a4; /* Сменим цвет при наведении */
+  transform: translateY(-3px); /* Легкий подъем кнопки */
+}
+
+/* Эффект при фокусе */
+.toggleButton:focus {
+  outline: none; /* Убираем стандартную обводку при фокусе */
+  box-shadow: 0 0 10px rgba(255, 99, 71, 0.7); /* Добавляем тень при фокусе */
+}
+
+

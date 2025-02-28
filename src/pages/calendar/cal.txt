@@ -1,0 +1,24 @@
+import { useState } from 'react';
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import interactionPlugin from "@fullcalendar/interaction"
+import './calendar.module.scss' // Для стилей календаря
+import ruLocale from '@fullcalendar/core/locales/ru';
+
+
+
+export default function Calendar() {
+
+
+  return (
+    <div>
+      <FullCalendar
+        plugins={[dayGridPlugin, interactionPlugin]}
+        locale={ruLocale} // Устанавливаем русскую локаль
+
+      />
+
+
+    </div>
+  );
+}

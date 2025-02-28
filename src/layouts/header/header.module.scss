@@ -1,0 +1,81 @@
+.headerContainer {
+  display: flex;
+  background-color: #7eb2b8;
+  width: 100%; /* Это гарантирует, что контейнер займет всю ширину */
+  padding: 10px 20px; /* Уменьшаем отступы сверху и снизу */
+  align-items: center; /* Центрируем элементы по вертикали */
+}
+
+.header {
+  display: flex;
+  align-items: center; /* Вертикальное выравнивание по центру */
+  width: 100%; /* Это растянет header на всю ширину */
+  max-width: 1200px; /* Ограничиваем максимальную ширину для удобства */
+  margin: 0 auto; /* Центрируем содержимое хедера */
+
+}
+
+.zagolovok {
+  color: #edf1c0;
+  margin-left: 18px;
+  font-size: 40px; /* Уменьшаем размер шрифта */
+  margin-bottom: 20px; /* Уменьшаем нижний отступ */
+}
+
+.buttons {
+  display: flex;
+  gap: 10px; /* Отступы между кнопками */
+  margin-left: auto; /* Это сдвигает блок с кнопками вправо */
+
+}
+
+.buttonHeader {
+  text-decoration: none; /* Убираем подчеркивание у ссылок */
+  color: #edf1c0; /* Цвет текста */
+  font-size: 25px;
+  padding: 32px 35px; /* Паддинги для кнопок */
+  border-radius: 5%; /* Делаем область нажатия круглой, если хотите */
+  background-color: transparent; /* Кнопки сливаются с фоном */
+  border: none; /* Убираем обводку */
+  cursor: pointer;
+  align-items: center; /* Центрируем иконку с текстом */
+  transition: color 0.3s ease, background-color 0.3s ease; /* Плавный переход при наведении */
+}
+
+.buttonHeader:hover {
+  color: #fff; /* Цвет текста при наведении */
+  background-color: rgba(255, 255, 255, 0.2); /* Легкий фон при наведении */
+}
+
+.buttonHeader:focus {
+  outline: none; /* Убираем обводку при фокусе */
+}
+
+.icon {
+  color: #edf1c0;
+  padding: 32px; /* Увеличиваем паддинги для создания большей области нажатия */
+  cursor: pointer;
+  transition: color 0.3s ease, background-color 0.3s ease; /* Плавный переход */
+
+  /* Для более комфортного клика */
+  display: flex;
+  justify-content: center;
+  align-items: center; /* Центрируем иконку внутри области */
+  border-radius: 5%; /* Делаем область нажатия круглой, если хотите */
+}
+
+.icon:hover {
+  color: #fff; /* Цвет иконки при наведении */
+  background-color: rgba(255, 255, 255, 0.2); /* Легкий фон при наведении */
+}
+
+.icon:focus {
+  outline: none; /* Убираем стандартную обводку при фокусе */
+  background-color: rgba(255, 255, 255, 0.3); /* Увеличиваем интенсивность фона при фокусе */
+}
+
+/* Класс для сдвига иконок вниз */
+.iconShift {
+  margin-bottom: -2px; /* Сдвигаем иконку немного вниз */
+  margin-right: auto;
+}
