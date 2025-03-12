@@ -3,12 +3,14 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import authSlice from '../features/authForm/authSlice';
 import reportSlice from '../pages/report/reportSlice';
 import personalpageSlice from '../pages/personalpage/personalpageSlice';
+import calendarSlice from '../pages/calendar/calendarSlice';
 
 
 const rootReducers = combineReducers({
   reportSlice,
   authSlice,
-  personalpageSlice
+  personalpageSlice,
+  calendarSlice
 })
 
 

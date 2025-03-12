@@ -1,34 +1,33 @@
-// src/redux/calendarSlice.ts
+// src/store/calendarSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-
-interface HealthRecord {
-  id: number;
-  recordDate: string;
-  symptom: string;
-  medication: string;
-  severity?: number;
-  dosage?: string;
-}
+import Cookies from 'js-cookie';
 
 interface CalendarState {
-  records: HealthRecord[];
+  events: any[];
   loading: boolean;
   error: string | null;
 }
 
 const initialState: CalendarState = {
-  records: [],
+  events: [],
   loading: false,
   error: null,
 };
 
-// Асинхронный запрос на получение данных
-export const fetchHealthRecords = createAsyncThunk(
-  'calendar/fetchHealthRecords',
-  async ({ userId, recordDate }: { userId: number; recordDate: string }) => {
-    const response = await axios.get(`/api/healthRecords/${userId}/${recordDate}`);
-    return response.data; // Данные из БД
+const token = Cookies.get('authToken'); // Извлекаем токен из cookies
+
+// Асинхронный thunk для получения всех записей HealthRecord по userId
+export const getAllHealthRecords = createAsyncThunk(
+  'calendar/getAllHealthRecords',
+  async (userId: string) => {
+    const response = await axios.get(
+      `http://localhost:5001/api/healthRecords/all/${userId}`,
+      {
+        headers: { Authorization: 'Bearer ' + token },
+      }
+    );
+    return response.data;
   }
 );
 
@@ -38,17 +37,42 @@ const calendarSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchHealthRecords.pending, (state) => {
+      .addCase(getAllHealthRecords.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchHealthRecords.fulfilled, (state, action) => {
+      .addCase(getAllHealthRecords.fulfilled, (state, action) => {
+        console.log('Полученные данные для событий:', action.payload);  // Логируем данные
+
         state.loading = false;
-        state.records = action.payload;
+        state.events = action.payload.map((record: any) => {
+          // Проверяем тип записи и создаем title
+          let title = '';
+          
+          if (record.symptom) {
+            title = `Симптом: ${record.symptom.name}`;
+          } else if (record.medication) {
+            title = `Лекарство: ${record.medication.name} - Дозировка: ${record.dosage || ''}`;
+          }
+
+          // Возвращаем событие с уникальным id и нужными свойствами
+          return {
+            id: record.id,  // Используем id из базы данных
+            title: title,
+            start: record.recordDate,  // Начало события
+            allDay: true,  // Все события - целый день
+            extendedProps: {
+              type: record.symptom ? 'symptom' : 'medication',
+              notes: record.notes,  // Дополнительные данные
+              weight: record.weight,
+              dosage: record.dosage,
+            },
+          };
+        });
       })
-      .addCase(fetchHealthRecords.rejected, (state, action) => {
+      .addCase(getAllHealthRecords.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Something went wrong';
+        state.error = action.error.message || 'Не удалось загрузить записи';
       });
   },
 });
