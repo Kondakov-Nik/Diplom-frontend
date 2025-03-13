@@ -1,4 +1,3 @@
-// src/store/calendarSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -34,6 +33,18 @@ interface NewMedicationRecord {
   medicationId: number;
 }
 
+// Интерфейс для обновления записи
+interface UpdateRecord {
+  id: string;
+  recordDate?: string;
+  weight?: number;
+  dosage?: number;
+  notes?: string | null;
+  userId: string;
+  symptomId?: number;
+  medicationId?: number;
+}
+
 // Интерфейс состояния
 interface CalendarState {
   events: any[];
@@ -52,18 +63,15 @@ const initialState: CalendarState = {
   error: null,
 };
 
-const token = Cookies.get('authToken'); // Извлекаем токен из cookies
+const token = Cookies.get('authToken');
 
 // Thunk для получения всех записей HealthRecord по userId
 export const getAllHealthRecords = createAsyncThunk(
   'calendar/getAllHealthRecords',
   async (userId: string) => {
-    const response = await axios.get(
-      `http://localhost:5001/api/healthRecords/all/${userId}`,
-      {
-        headers: { Authorization: 'Bearer ' + token },
-      }
-    );
+    const response = await axios.get(`http://localhost:5001/api/healthRecords/all/${userId}`, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
     return response.data;
   }
 );
@@ -72,12 +80,9 @@ export const getAllHealthRecords = createAsyncThunk(
 export const getAllSymptoms = createAsyncThunk(
   'calendar/getAllSymptoms',
   async (userId: string) => {
-    const response = await axios.get<Symptom[]>(
-      `http://localhost:5001/api/symptom/all/${userId}`,
-      {
-        headers: { Authorization: 'Bearer ' + token },
-      }
-    );
+    const response = await axios.get<Symptom[]>(`http://localhost:5001/api/symptom/all/${userId}`, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
     return response.data;
   }
 );
@@ -86,12 +91,9 @@ export const getAllSymptoms = createAsyncThunk(
 export const getAllMedications = createAsyncThunk(
   'calendar/getAllMedications',
   async (userId: string) => {
-    const response = await axios.get<Medication[]>(
-      `http://localhost:5001/api/medication/all/${userId}`,
-      {
-        headers: { Authorization: 'Bearer ' + token },
-      }
-    );
+    const response = await axios.get<Medication[]>(`http://localhost:5001/api/medication/all/${userId}`, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
     return response.data;
   }
 );
@@ -100,13 +102,9 @@ export const getAllMedications = createAsyncThunk(
 export const createSymptomRecord = createAsyncThunk(
   'calendar/createSymptomRecord',
   async (newRecord: NewSymptomRecord) => {
-    const response = await axios.post(
-      `http://localhost:5001/api/healthRecords/symptoms`,
-      newRecord,
-      {
-        headers: { Authorization: 'Bearer ' + token },
-      }
-    );
+    const response = await axios.post(`http://localhost:5001/api/healthRecords/symptoms`, newRecord, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
     return response.data;
   }
 );
@@ -115,9 +113,31 @@ export const createSymptomRecord = createAsyncThunk(
 export const createMedicationRecord = createAsyncThunk(
   'calendar/createMedicationRecord',
   async (newRecord: NewMedicationRecord) => {
-    const response = await axios.post(
-      `http://localhost:5001/api/healthRecords/medications`,
-      newRecord,
+    const response = await axios.post(`http://localhost:5001/api/healthRecords/medications`, newRecord, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    return response.data;
+  }
+);
+
+// Thunk для добавления нового симптома
+export const createCustomSymptom = createAsyncThunk(
+  'calendar/createCustomSymptom',
+  async (newSymptom: { name: string; description: string; isCustom: boolean; userId: string }) => {
+    const response = await axios.post(`http://localhost:5001/api/symptom`, newSymptom, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    return response.data;
+  }
+);
+
+// Thunk для обновления записи
+export const updateRecord = createAsyncThunk(
+  'calendar/updateRecord',
+  async (updatedRecord: UpdateRecord) => {
+    const response = await axios.put(
+      `http://localhost:5001/api/healthRecords/${updatedRecord.id}`,
+      updatedRecord,
       {
         headers: { Authorization: 'Bearer ' + token },
       }
@@ -132,7 +152,6 @@ const calendarSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      // Обработка getAllHealthRecords
       .addCase(getAllHealthRecords.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -142,22 +161,24 @@ const calendarSlice = createSlice({
         state.events = action.payload.map((record: any) => {
           let title = '';
           const recordDate = new Date(record.recordDate);
-          const time = recordDate.toTimeString().slice(0, 5); // Извлекаем время в формате HH:mm
+          const time = recordDate.toTimeString().slice(0, 5);
           if (record.symptom) {
-            title = `${record.symptom.name}`;
+            title = `${record.symptom.name} - ${time} - Тяжесть: ${record.weight}`;
           } else if (record.medication) {
-            title = `${record.medication.name} -${record.notes || ''}х${record.dosage || ''}мг`;
+            title = `Лекарство: ${record.medication.name} - ${time} - Количество: ${record.notes || ''} - Дозировка: ${record.dosage || ''} мг`;
           }
           return {
             id: record.id,
             title: title,
             start: record.recordDate,
-            allDay: false, // Устанавливаем allDay в false для всех событий с временем
+            allDay: false,
             extendedProps: {
               type: record.symptom ? 'symptom' : 'medication',
               notes: record.notes,
               weight: record.weight,
               dosage: record.dosage,
+              symptomId: record.symptomId,
+              medicationId: record.medicationId,
             },
           };
         });
@@ -166,7 +187,6 @@ const calendarSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Не удалось загрузить записи';
       })
-      // Обработка getAllSymptoms
       .addCase(getAllSymptoms.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -179,7 +199,6 @@ const calendarSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Не удалось загрузить симптомы';
       })
-      // Обработка getAllMedications
       .addCase(getAllMedications.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -192,7 +211,6 @@ const calendarSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Не удалось загрузить лекарства';
       })
-      // Обработка createSymptomRecord
       .addCase(createSymptomRecord.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -204,7 +222,6 @@ const calendarSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Не удалось создать запись о симптоме';
       })
-      // Обработка createMedicationRecord
       .addCase(createMedicationRecord.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -215,6 +232,42 @@ const calendarSlice = createSlice({
       .addCase(createMedicationRecord.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Не удалось создать запись о лекарстве';
+      })
+      .addCase(updateRecord.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateRecord.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedEvent = action.payload;
+        const index = state.events.findIndex((event) => event.id === updatedEvent.id);
+        if (index !== -1) {
+          const recordDate = new Date(updatedEvent.recordDate);
+          const time = recordDate.toTimeString().slice(0, 5);
+          let title = '';
+          if (updatedEvent.symptom) {
+            title = `Симптом: ${updatedEvent.symptom.name} - ${time} - Тяжесть: ${updatedEvent.weight}`;
+          } else if (updatedEvent.medication) {
+            title = `Лекарство: ${updatedEvent.medication.name} - ${time} - Количество: ${updatedEvent.notes || ''} - Дозировка: ${updatedEvent.dosage || ''} мг`;
+          }
+          state.events[index] = {
+            ...state.events[index],
+            title: title,
+            start: updatedEvent.recordDate,
+            extendedProps: {
+              ...state.events[index].extendedProps,
+              weight: updatedEvent.weight,
+              dosage: updatedEvent.dosage,
+              notes: updatedEvent.notes,
+              symptomId: updatedEvent.symptomId,
+              medicationId: updatedEvent.medicationId,
+            },
+          };
+        }
+      })
+      .addCase(updateRecord.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Не удалось обновить запись';
       });
   },
 });
