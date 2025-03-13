@@ -9,59 +9,66 @@ import { DateSelectArg, EventClickArg, EventApi } from '@fullcalendar/core';
 import Modal from 'react-modal';
 import ruLocale from '@fullcalendar/core/locales/ru';
 import Select from 'react-select';
-import { getAllHealthRecords } from './calendarSlice';
+import { getAllHealthRecords, getAllSymptoms, getAllMedications, createSymptomRecord, createMedicationRecord } from './calendarSlice';
 import { createEventId } from './event-utils';
 import './calendar.module.scss';
-import Cookies from 'js-cookie'; // Import js-cookie
-import { jwtDecode } from 'jwt-decode'; // Import jwt-decode
+import Cookies from 'js-cookie';
+import { jwtDecode } from 'jwt-decode';
+import { Symptom, Medication } from './calendarSlice';
 
 Modal.setAppElement('#root');
 
-
 const Calendar: React.FC = () => {
   const dispatch = useAppDispatch();
-  const events = useAppSelector((state: any) => state.calendarSlice.events); // Get events from Redux
-
-
-  
+  const events = useAppSelector((state: any) => state.calendarSlice.events);
+  const symptoms = useAppSelector((state: any) => state.calendarSlice.symptoms);
+  const medications = useAppSelector((state: any) => state.calendarSlice.medications);
 
   const [weekendsVisible, setWeekendsVisible] = React.useState(true);
   const [currentEvents, setCurrentEvents] = React.useState<EventApi[]>([]);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [isSecondModalOpen, setIsSecondModalOpen] = React.useState(false);
+  const [isSymptomModalOpen, setIsSymptomModalOpen] = React.useState(false);
   const [isMedicationModalOpen, setIsMedicationModalOpen] = React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState<DateSelectArg | null>(null);
   const [selectedType, setSelectedType] = React.useState<'symptom' | 'medication' | null>(null);
-  const [selectedSymptom, setSelectedSymptom] = React.useState<string | null>(null);
-  const [selectedMedication, setSelectedMedication] = React.useState<string | null>(null);
+  const [selectedSymptom, setSelectedSymptom] = React.useState<number | null>(null);
+  const [selectedMedication, setSelectedMedication] = React.useState<number | null>(null);
   const [severity, setSeverity] = React.useState<number | null>(null);
   const [quantity, setQuantity] = React.useState<number | null>(null);
   const [dosage, setDosage] = React.useState<number | null>(null);
+  const [symptomTime, setSymptomTime] = React.useState<string>(() => {
+    const now = new Date();
+    return now.toTimeString().slice(0, 5); // Текущие часы и минуты в формате HH:mm
+  });
+  const [medicationTime, setMedicationTime] = React.useState<string>(() => {
+    const now = new Date();
+    return now.toTimeString().slice(0, 5); // Текущие часы и минуты в формате HH:mm
+  });
 
   useEffect(() => {
     const token = Cookies.get('authToken');
     if (token) {
       const decoded: any = jwtDecode(token);
       const userId = decoded.id;
-      
       dispatch(getAllHealthRecords(userId));
-
+      dispatch(getAllSymptoms(userId));
+      dispatch(getAllMedications(userId));
     }
   }, [dispatch]);
 
+  const token = Cookies.get('authToken');
+  const decoded: any = token ? jwtDecode(token) : null;
+  const userId = decoded?.id;
 
-  // Options for symptoms and medications (could be fetched from a database later)
-  const symptomOptions = [
-    { label: 'Головная боль', value: 'headache' },
-    { label: 'Кашель', value: 'cough' },
-    { label: 'Тошнота', value: 'nausea' },
-  ];
+  const symptomOptions = symptoms.map((symptom: Symptom) => ({
+    label: symptom.name,
+    value: symptom.id,
+  }));
 
-  const medicationOptions = [
-    { label: 'Парацетамол', value: 'paracetamol' },
-    { label: 'Аспирин', value: 'aspirin' },
-    { label: 'Ибупрофен', value: 'ibuprofen' },
-  ];
+  const medicationOptions = medications.map((medication: Medication) => ({
+    label: medication.name,
+    value: medication.id,
+  }));
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     setSelectedDate(selectInfo);
@@ -71,7 +78,7 @@ const Calendar: React.FC = () => {
   const handleTypeSelect = (type: 'symptom' | 'medication') => {
     setSelectedType(type);
     setIsModalOpen(false);
-    setIsSecondModalOpen(type === 'symptom');
+    setIsSymptomModalOpen(type === 'symptom');
     setIsMedicationModalOpen(type === 'medication');
   };
 
@@ -81,9 +88,10 @@ const Calendar: React.FC = () => {
   };
 
   const closeSecondModal = () => {
-    setIsSecondModalOpen(false);
+    setIsSymptomModalOpen(false);
     setSelectedSymptom(null);
     setSeverity(null);
+    setSymptomTime(new Date().toTimeString().slice(0, 5));
   };
 
   const closeMedicationModal = () => {
@@ -91,6 +99,7 @@ const Calendar: React.FC = () => {
     setSelectedMedication(null);
     setQuantity(null);
     setDosage(null);
+    setMedicationTime(new Date().toTimeString().slice(0, 5));
   };
 
   const handleSymptomChange = (selectedOption: any) => {
@@ -113,32 +122,68 @@ const Calendar: React.FC = () => {
     setSeverity(severity);
   };
 
-  const handleSaveEvent = (event: React.FormEvent) => {
+  const handleSymptomTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSymptomTime(event.target.value);
+  };
+
+  const handleMedicationTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setMedicationTime(event.target.value);
+  };
+
+  const handleSaveSymptom = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (selectedDate && selectedSymptom && severity !== null) {
+    if (selectedDate && selectedSymptom !== null && severity !== null && userId) {
+      const selectedSymptomName = symptoms.find((s: Symptom) => s.id === selectedSymptom)?.name || '';
       const calendarApi = selectedDate.view.calendar;
-      calendarApi.addEvent({
+      const recordDateWithTime = `${selectedDate.startStr.split('T')[0]}T${symptomTime}:00`; // Убираем Z для локального времени
+      const newEvent = {
         id: createEventId(),
-        title: `Симптом: ${selectedSymptom} - Тяжесть: ${severity}`,
-        start: selectedDate.startStr,
+        title: `Симптом: ${selectedSymptomName} - Тяжесть: ${severity}`,
+        start: recordDateWithTime,
         end: selectedDate.endStr,
-        allDay: selectedDate.allDay,
-      });
+        allDay: false,
+      };
+      calendarApi.addEvent(newEvent);
+
+      const newRecord = {
+        recordDate: recordDateWithTime,
+        weight: severity,
+        notes: null,
+        userId,
+        symptomId: selectedSymptom,
+      };
+      await dispatch(createSymptomRecord(newRecord)).unwrap();
+      dispatch(getAllHealthRecords(userId));
+
       closeSecondModal();
     }
   };
 
-  const handleSaveMedication = (event: React.FormEvent) => {
+  const handleSaveMedication = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (selectedDate && selectedMedication && quantity && dosage !== null) {
+    if (selectedDate && selectedMedication !== null && quantity && dosage !== null && userId) {
+      const selectedMedicationName = medications.find((m: Medication) => m.id === selectedMedication)?.name || '';
       const calendarApi = selectedDate.view.calendar;
-      calendarApi.addEvent({
+      const recordDateWithTime = `${selectedDate.startStr.split('T')[0]}T${medicationTime}:00`; // Убираем Z для локального времени
+      const newEvent = {
         id: createEventId(),
-        title: `Лекарство: ${selectedMedication} - Количество: ${quantity} - Дозировка: ${dosage} мг`,
-        start: selectedDate.startStr,
+        title: `Лекарство: ${selectedMedicationName} - Количество: ${quantity} - Дозировка: ${dosage} мг`,
+        start: recordDateWithTime,
         end: selectedDate.endStr,
-        allDay: selectedDate.allDay,
-      });
+        allDay: false,
+      };
+      calendarApi.addEvent(newEvent);
+
+      const newRecord = {
+        recordDate: recordDateWithTime,
+        dosage,
+        notes: quantity.toString(),
+        userId,
+        medicationId: selectedMedication,
+      };
+      await dispatch(createMedicationRecord(newRecord)).unwrap();
+      dispatch(getAllHealthRecords(userId));
+
       closeMedicationModal();
     }
   };
@@ -156,7 +201,6 @@ const Calendar: React.FC = () => {
   return (
     <div className="demo-app">
       <div className="demo-app-main">
-{/*       {events && console.log("События для календаря:", events)} {/* Логируем данные перед рендером */}
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           headerToolbar={{
@@ -170,26 +214,27 @@ const Calendar: React.FC = () => {
           selectMirror={true}
           dayMaxEvents={true}
           weekends={weekendsVisible}
-          events={events} // Use events from Redux
+          events={events}
           select={handleDateSelect}
           eventClick={handleEventClick}
           eventsSet={handleEvents}
           locale={ruLocale}
-          contentHeight={800} // Увеличивает высоту клеток чисел
-          //aspectRatio={1.5} // Увеличивает ширину относительно высоты
+          contentHeight={800}
           firstDay={1}
         />
       </div>
 
-      {/* First modal: Choose symptom or medication */}
       <Modal
         isOpen={isModalOpen}
         onRequestClose={closeModal}
         contentLabel="Select Type Modal"
         style={{
           content: {
+            position: 'absolute',
             top: '50%',
             left: '50%',
+            right: 'auto',
+            bottom: 'auto',
             transform: 'translate(-50%, -50%)',
             width: '400px',
             maxWidth: '90%',
@@ -199,12 +244,12 @@ const Calendar: React.FC = () => {
             backgroundColor: 'white',
           },
           overlay: {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
@@ -219,15 +264,17 @@ const Calendar: React.FC = () => {
         </div>
       </Modal>
 
-      {/* Modal for symptom input */}
       <Modal
-        isOpen={isSecondModalOpen}
+        isOpen={isSymptomModalOpen}
         onRequestClose={closeSecondModal}
         contentLabel="Input Data Modal"
         style={{
           content: {
+            position: 'absolute',
             top: '50%',
             left: '50%',
+            right: 'auto',
+            bottom: 'auto',
             transform: 'translate(-50%, -50%)',
             width: '400px',
             maxWidth: '90%',
@@ -237,12 +284,12 @@ const Calendar: React.FC = () => {
             backgroundColor: 'white',
           },
           overlay: {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
@@ -251,15 +298,23 @@ const Calendar: React.FC = () => {
         }}
       >
         <h2>Введите данные для симптома</h2>
-        <form onSubmit={handleSaveEvent}>
+        <form onSubmit={handleSaveSymptom}>
           <div>
             <label>Название симптома:</label>
             <Select
-              value={symptomOptions.find((option) => option.value === selectedSymptom)}
+              value={symptomOptions.find((option: { label: string; value: number }) => option.value === selectedSymptom)}
               onChange={handleSymptomChange}
               options={symptomOptions}
               placeholder="Выберите симптом"
               isSearchable
+            />
+          </div>
+          <div>
+            <label>Время симптома:</label>
+            <input
+              type="time"
+              value={symptomTime}
+              onChange={handleSymptomTimeChange}
             />
           </div>
           <div>
@@ -286,15 +341,17 @@ const Calendar: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Modal for medication input */}
       <Modal
         isOpen={isMedicationModalOpen}
         onRequestClose={closeMedicationModal}
         contentLabel="Input Medication Data Modal"
         style={{
           content: {
+            position: 'absolute',
             top: '50%',
             left: '50%',
+            right: 'auto',
+            bottom: 'auto',
             transform: 'translate(-50%, -50%)',
             width: '400px',
             maxWidth: '90%',
@@ -304,12 +361,12 @@ const Calendar: React.FC = () => {
             backgroundColor: 'white',
           },
           overlay: {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
@@ -322,11 +379,19 @@ const Calendar: React.FC = () => {
           <div>
             <label>Название лекарства:</label>
             <Select
-              value={medicationOptions.find((option) => option.value === selectedMedication)}
+              value={medicationOptions.find((option: { label: string; value: number }) => option.value === selectedMedication)}
               onChange={handleMedicationChange}
               options={medicationOptions}
               placeholder="Выберите лекарство"
               isSearchable
+            />
+          </div>
+          <div>
+            <label>Время приема:</label>
+            <input
+              type="time"
+              value={medicationTime}
+              onChange={handleMedicationTimeChange}
             />
           </div>
           <div>
