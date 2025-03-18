@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/hooks';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -7,8 +7,8 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { DateSelectArg, EventClickArg, EventApi } from '@fullcalendar/core';
 import Modal from 'react-modal';
 import ruLocale from '@fullcalendar/core/locales/ru';
-import Select from 'react-select';
-import { getAllHealthRecords, getAllSymptoms, getAllMedications, createSymptomRecord, createMedicationRecord, updateRecord, createCustomSymptom, createCustomMedication} from './calendarSlice';
+import Select, { MultiValue, ActionMeta } from 'react-select';
+import { getAllHealthRecords, getAllSymptoms, getAllMedications, createSymptomRecord, createMedicationRecord, updateRecord, createCustomSymptom, createCustomMedication } from './calendarSlice';
 import { createEventId } from './event-utils';
 import './calendar.module.scss';
 import Cookies from 'js-cookie';
@@ -55,6 +55,13 @@ const Calendar: React.FC = () => {
     return now.toTimeString().slice(0, 5);
   });
   const [selectedEvent, setSelectedEvent] = React.useState<any>(null);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+
+  // Состояния для фильтров
+  const [filterType, setFilterType] = useState({ symptoms: false, medications: false });
+  const [selectedSymptoms, setSelectedSymptoms] = useState<Option[]>([]);
+  const [selectedMedications, setSelectedMedications] = useState<Option[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState(events);
 
   useEffect(() => {
     const token = Cookies.get('authToken');
@@ -81,6 +88,83 @@ const Calendar: React.FC = () => {
     value: medication.id,
   }));
 
+  const filterEvents = (allEvents: any[]) => {
+    let filtered = [...allEvents];
+  
+    const isTypeFilterActive = filterType.symptoms || filterType.medications;
+    const isSymptomFilterActive = selectedSymptoms.length > 0;
+    const isMedicationFilterActive = selectedMedications.length > 0;
+    const isAnyFilterActive = isTypeFilterActive || isSymptomFilterActive || isMedicationFilterActive;
+  
+    if (!isAnyFilterActive) {
+      return allEvents;
+    }
+  
+    if (isTypeFilterActive && !(filterType.symptoms && filterType.medications)) {
+      filtered = filtered.filter((event) => {
+        if (filterType.symptoms && !filterType.medications) {
+          return event.extendedProps.type === 'symptom';
+        }
+        if (!filterType.symptoms && filterType.medications) {
+          return event.extendedProps.type === 'medication';
+        }
+        return true;
+      });
+    }
+  
+    if (isSymptomFilterActive || isMedicationFilterActive) {
+      const symptomIds = selectedSymptoms.map((symptom) => symptom.value);
+      const medicationIds = selectedMedications.map((medication) => medication.value);
+
+  
+      filtered = filtered.filter((event) => {  
+        const matchesSymptom =
+          event.extendedProps.type === 'symptom' &&
+          isSymptomFilterActive &&
+          event.extendedProps.symptomId !== undefined &&
+          symptomIds.includes(event.extendedProps.symptomId);
+  
+        const matchesMedication =
+          event.extendedProps.type === 'medication' &&
+          isMedicationFilterActive &&
+          event.extendedProps.medicationId !== undefined &&
+          medicationIds.includes(event.extendedProps.medicationId);
+   
+        return matchesSymptom || matchesMedication;
+      });
+    }
+  
+
+    return filtered;
+  };
+
+  useEffect(() => {
+    setFilteredEvents(filterEvents(events));
+  }, [events, filterType, selectedSymptoms, selectedMedications]);
+
+  const handleFiltersClick = () => {
+    setIsFilterPanelOpen(!isFilterPanelOpen);
+  };
+
+  const handleFilterTypeChange = (type: 'symptoms' | 'medications') => {
+    setFilterType((prev) => ({
+      ...prev,
+      [type]: !prev[type],
+    }));
+  };
+
+  const handleSymptomFilterChange = (newValue: MultiValue<Option>, actionMeta: ActionMeta<Option>) => {
+    setSelectedSymptoms(newValue as Option[]);
+  };
+
+  const handleMedicationFilterChange = (newValue: MultiValue<Option>, actionMeta: ActionMeta<Option>) => {
+    setSelectedMedications(newValue as Option[]);
+  };
+
+  const handleApplyFilters = () => {
+    setIsFilterPanelOpen(false);
+  };
+
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     setSelectedDate(selectInfo);
     setIsModalOpen(true);
@@ -97,7 +181,7 @@ const Calendar: React.FC = () => {
     setAddingType(type);
     setIsAddNewModalOpen(true);
   };
-  
+
   const closeAddNewModal = () => {
     setIsAddNewModalOpen(false);
     setNewSymptomName('');
@@ -197,7 +281,6 @@ const Calendar: React.FC = () => {
       };
       await dispatch(createSymptomRecord(newRecord)).unwrap();
       dispatch(getAllHealthRecords(userId));
-
       closeSecondModal();
     }
   };
@@ -226,7 +309,6 @@ const Calendar: React.FC = () => {
       };
       await dispatch(createMedicationRecord(newRecord)).unwrap();
       dispatch(getAllHealthRecords(userId));
-
       closeMedicationModal();
     }
   };
@@ -264,7 +346,6 @@ const Calendar: React.FC = () => {
     event.preventDefault();
     if (selectedEvent && selectedSymptom !== null && severity !== null && userId) {
       const recordDateWithTime = `${selectedEvent.start!.toISOString().split('T')[0]}T${symptomTime}:00`;
-
       const updatedRecord = {
         id: selectedEvent.id,
         recordDate: recordDateWithTime,
@@ -274,7 +355,6 @@ const Calendar: React.FC = () => {
         symptomId: selectedSymptom,
         medicationId: undefined,
       };
-
       await dispatch(updateRecord(updatedRecord)).unwrap();
       dispatch(getAllHealthRecords(userId));
       closeUpdateSymptomEventModal();
@@ -292,10 +372,10 @@ const Calendar: React.FC = () => {
       try {
         if (addingType === 'symptom') {
           await dispatch(createCustomSymptom(newItem)).unwrap();
-          dispatch(getAllSymptoms(userId)); // Обновляем список симптомов
+          dispatch(getAllSymptoms(userId));
         } else if (addingType === 'medication') {
           await dispatch(createCustomMedication(newItem)).unwrap();
-          dispatch(getAllMedications(userId)); // Обновляем список лекарств
+          dispatch(getAllMedications(userId));
         }
         closeAddNewModal();
       } catch (error) {
@@ -304,12 +384,10 @@ const Calendar: React.FC = () => {
     }
   };
 
-
   const handleSaveMedicalEdit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (selectedEvent && selectedMedication !== null && quantity !== null && dosage !== null && userId) {
       const recordDateWithTime = `${selectedEvent.start!.toISOString().split('T')[0]}T${medicationTime}:00`;
-
       const updatedRecord = {
         id: selectedEvent.id,
         recordDate: recordDateWithTime,
@@ -319,7 +397,6 @@ const Calendar: React.FC = () => {
         symptomId: undefined,
         medicationId: selectedMedication,
       };
-
       await dispatch(updateRecord(updatedRecord)).unwrap();
       dispatch(getAllHealthRecords(userId));
       closeUpdateMedicalEventModal();
@@ -334,7 +411,13 @@ const Calendar: React.FC = () => {
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay',
+            right: 'filters dayGridMonth,timeGridWeek,timeGridDay',
+          }}
+          customButtons={{
+            filters: {
+              text: 'Фильтры',
+              click: handleFiltersClick,
+            },
           }}
           initialView="dayGridMonth"
           editable={true}
@@ -342,7 +425,7 @@ const Calendar: React.FC = () => {
           selectMirror={true}
           dayMaxEvents={true}
           weekends={weekendsVisible}
-          events={events}
+          events={filteredEvents}
           select={handleDateSelect}
           eventClick={handleEventClick}
           eventsSet={handleEvents}
@@ -355,170 +438,107 @@ const Calendar: React.FC = () => {
             hour12: false,
           }}
         />
-      </div>
 
-      <Modal isOpen={isModalOpen} onRequestClose={closeModal} contentLabel="Select Type Modal" 
-      style={{ content: {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        right: 'auto',
-        bottom: 'auto',
-        transform: 'translate(-50%, -50%)',
-        width: '400px',
-        maxWidth: '90%',
-        padding: '20px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-        backgroundColor: 'white',
-      },
-      overlay: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 9999,
-      }, }}>
-        <h2>Я хочу отметить:</h2>
-        <div>
-          <button onClick={() => handleTypeSelect('symptom')}>Симптом</button>
-          <button onClick={() => handleTypeSelect('medication')}>Лекарство</button>
-        </div>
-      </Modal>
-
-      <Modal
-      isOpen={isSymptomModalOpen}
-      onRequestClose={closeSecondModal}
-      contentLabel="Input Data Modal"
-      style={{
-        content: {
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          right: 'auto',
-          bottom: 'auto',
-          transform: 'translate(-50%, -50%)',
-          width: '400px',
-          maxWidth: '90%',
-          padding: '20px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-          backgroundColor: 'white',
-        },
-        overlay: {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 9999,
-        },
-      }}
-    >
-      <h2>Введите данные для симптома</h2>
-      <form onSubmit={handleSaveSymptom}>
-        <div>
-          <label>Название симптома:</label>
-          <Select
-            value={symptomOptions.find((option: Option) => option.value === selectedSymptom)}
-            onChange={handleSymptomChange}
-            options={symptomOptions}
-            placeholder="Выберите симптом"
-            isSearchable
-          />
-          <p
-            style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px' }}
-            onClick={() => openAddNewModal('symptom')}
+        {isFilterPanelOpen && (
+          <div
+            className="filter-modal"
+            style={{
+              position: 'absolute',
+              top: '60px',
+              right: '150px',
+              width: '300px',
+              backgroundColor: '#FFFFFF',
+              padding: '15px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+              zIndex: 1000,
+            }}
           >
-            Не нашли нужного? Добавить свой
-          </p>
-        </div>
-        <div>
-          <label>Время симптома:</label>
-          <input type="time" value={symptomTime} onChange={handleSymptomTimeChange} />
-        </div>
-        <div>
-          <label>Тяжесть симптома:</label>
-          <div>
-            {[1, 2, 3, 4, 5].map((sev) => (
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '16px', fontWeight: 'bold' }}>Фильтры</h4>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Тип</label>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+                <input
+                  type="checkbox"
+                  checked={filterType.symptoms}
+                  onChange={() => handleFilterTypeChange('symptoms')}
+                  style={{ marginRight: '5px' }}
+                />
+                <span>Симптомы</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={filterType.medications}
+                  onChange={() => handleFilterTypeChange('medications')}
+                  style={{ marginRight: '5px' }}
+                />
+                <span>Лекарства</span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Симптом</label>
+              <Select
+                isMulti
+                value={selectedSymptoms}
+                onChange={(newValue, actionMeta) => handleSymptomFilterChange(newValue, actionMeta)}
+                options={symptomOptions}
+                placeholder="Выберите симптомы"
+                isSearchable
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Лекарство</label>
+              <Select
+                isMulti
+                value={selectedMedications}
+                onChange={(newValue, actionMeta) => handleMedicationFilterChange(newValue, actionMeta)}
+                options={medicationOptions}
+                placeholder="Выберите лекарства"
+                isSearchable
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <button
-                type="button"
-                key={sev}
-                className={`severity-button ${severity === sev ? 'selected' : ''}`}
-                onClick={() => handleSeverityChange(sev)}
+                onClick={() => setIsFilterPanelOpen(false)}
+                style={{
+                  padding: '8px',
+                  backgroundColor: 'transparent',
+                  color: '#007BFF',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
               >
-                {sev}
+                Отмена
               </button>
-            ))}
+              <button
+                onClick={handleApplyFilters}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#007BFF',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                Применить
+              </button>
+            </div>
           </div>
-        </div>
-        <div>
-          <button type="button" onClick={closeSecondModal}>Закрыть</button>
-          <button type="submit">Сохранить</button>
-        </div>
-      </form>
-    </Modal>
+        )}
+      </div>
 
       <Modal
-      isOpen={isAddNewModalOpen}
-      onRequestClose={closeAddNewModal}
-      contentLabel="Add New Symptom Modal"
-      style={{
-        content: {
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          right: 'auto',
-          bottom: 'auto',
-          transform: 'translate(-50%, -50%)',
-          width: '400px',
-          maxWidth: '90%',
-          padding: '20px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-          backgroundColor: 'white',
-        },
-        overlay: {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 10000,
-        },
-      }}
-    >
-      <h2>Введите название {addingType === 'symptom' ? 'симптома' : 'лекарства'}</h2>
-      <input
-        type="text"
-        value={newSymptomName}
-        onChange={(e) => setNewSymptomName(e.target.value)}
-        placeholder={`Название ${addingType === 'symptom' ? 'симптома' : 'лекарства'}`}
-        style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
-      />
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <button type="button" onClick={closeAddNewModal}>Выйти</button>
-        <button type="button" onClick={handleCreateItem}>Сохранить</button>
-      </div>
-    </Modal>
-
-      <Modal isOpen={isMedicationModalOpen} 
-      onRequestClose={closeMedicationModal} 
-      contentLabel="Input Medication Data Modal" 
-      style={{ content: {
+        isOpen={isModalOpen}
+        onRequestClose={closeModal}
+        contentLabel="Select Type Modal"
+        style={{
+          content: {
             position: 'absolute',
             top: '50%',
             left: '50%',
@@ -543,43 +563,209 @@ const Calendar: React.FC = () => {
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 9999,
-          }, }}>
-       <h2>Введите данные для лекарства</h2>
-      <form onSubmit={handleSaveMedication}>
+          },
+        }}
+      >
+        <h2>Я хочу отметить:</h2>
         <div>
-          <label>Название лекарства:</label>
-          <Select
-            value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
-            onChange={handleMedicationChange}
-            options={medicationOptions}
-            placeholder="Выберите лекарство"
-            isSearchable
-          />
-          <p
-            style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px' }}
-            onClick={() => openAddNewModal('medication')}
-          >
-            Не нашли нужного? Добавить своё
-          </p>
+          <button onClick={() => handleTypeSelect('symptom')}>Симптом</button>
+          <button onClick={() => handleTypeSelect('medication')}>Лекарство</button>
         </div>
-        <div>
-          <label>Время приема:</label>
-          <input type="time" value={medicationTime} onChange={handleMedicationTimeChange} />
+      </Modal>
+
+      <Modal
+        isOpen={isSymptomModalOpen}
+        onRequestClose={closeSecondModal}
+        contentLabel="Input Data Modal"
+        style={{
+          content: {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            right: 'auto',
+            bottom: 'auto',
+            transform: 'translate(-50%, -50%)',
+            width: '400px',
+            maxWidth: '90%',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+            backgroundColor: 'white',
+          },
+          overlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: '0',
+            bottom: '0',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+          },
+        }}
+      >
+        <h2>Введите данные для симптома</h2>
+        <form onSubmit={handleSaveSymptom}>
+          <div>
+            <label>Название симптома:</label>
+            <Select
+              value={symptomOptions.find((option: Option) => option.value === selectedSymptom)}
+              onChange={handleSymptomChange}
+              options={symptomOptions}
+              placeholder="Выберите симптом"
+              isSearchable
+            />
+            <p
+              style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px' }}
+              onClick={() => openAddNewModal('symptom')}
+            >
+              Не нашли нужного? Добавить свой
+            </p>
+          </div>
+          <div>
+            <label>Время симптома:</label>
+            <input type="time" value={symptomTime} onChange={handleSymptomTimeChange} />
+          </div>
+          <div>
+            <label>Тяжесть симптома:</label>
+            <div>
+              {[1, 2, 3, 4, 5].map((sev) => (
+                <button
+                  type="button"
+                  key={sev}
+                  className={`severity-button ${severity === sev ? 'selected' : ''}`}
+                  onClick={() => handleSeverityChange(sev)}
+                >
+                  {sev}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <button type="button" onClick={closeSecondModal}>Закрыть</button>
+            <button type="submit">Сохранить</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isAddNewModalOpen}
+        onRequestClose={closeAddNewModal}
+        contentLabel="Add New Symptom Modal"
+        style={{
+          content: {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            right: 'auto',
+            bottom: 'auto',
+            transform: 'translate(-50%, -50%)',
+            width: '400px',
+            maxWidth: '90%',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+            backgroundColor: 'white',
+          },
+          overlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10000,
+          },
+        }}
+      >
+        <h2>Введите название {addingType === 'symptom' ? 'симптома' : 'лекарства'}</h2>
+        <input
+          type="text"
+          value={newSymptomName}
+          onChange={(e) => setNewSymptomName(e.target.value)}
+          placeholder={`Название ${addingType === 'symptom' ? 'симптома' : 'лекарства'}`}
+          style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <button type="button" onClick={closeAddNewModal}>Выйти</button>
+          <button type="button" onClick={handleCreateItem}>Сохранить</button>
         </div>
-        <div>
-          <label>Количество (шт):</label>
-          <input type="number" value={quantity || ''} onChange={handleQuantityChange} placeholder="Количество" min="1" />
-        </div>
-        <div>
-          <label>Дозировка (мг):</label>
-          <input type="number" value={dosage || ''} onChange={handleDosageChange} placeholder="Дозировка" min="1" />
-        </div>
-        <div>
-          <button type="button" onClick={closeMedicationModal}>Закрыть</button>
-          <button type="submit">Сохранить</button>
-        </div>
-      </form>
-    </Modal>
+      </Modal>
+
+      <Modal
+        isOpen={isMedicationModalOpen}
+        onRequestClose={closeMedicationModal}
+        contentLabel="Input Medication Data Modal"
+        style={{
+          content: {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            right: 'auto',
+            bottom: 'auto',
+            transform: 'translate(-50%, -50%)',
+            width: '400px',
+            maxWidth: '90%',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+            backgroundColor: 'white',
+          },
+          overlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+          },
+        }}
+      >
+        <h2>Введите данные для лекарства</h2>
+        <form onSubmit={handleSaveMedication}>
+          <div>
+            <label>Название лекарства:</label>
+            <Select
+              value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
+              onChange={handleMedicationChange}
+              options={medicationOptions}
+              placeholder="Выберите лекарство"
+              isSearchable
+            />
+            <p
+              style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px' }}
+              onClick={() => openAddNewModal('medication')}
+            >
+              Не нашли нужного? Добавить своё
+            </p>
+          </div>
+          <div>
+            <label>Время приема:</label>
+            <input type="time" value={medicationTime} onChange={handleMedicationTimeChange} />
+          </div>
+          <div>
+            <label>Количество (шт):</label>
+            <input type="number" value={quantity || ''} onChange={handleQuantityChange} placeholder="Количество" min="1" />
+          </div>
+          <div>
+            <label>Дозировка (мг):</label>
+            <input type="number" value={dosage || ''} onChange={handleDosageChange} placeholder="Дозировка" min="1" />
+          </div>
+          <div>
+            <button type="button" onClick={closeMedicationModal}>Закрыть</button>
+            <button type="submit">Сохранить</button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal
         isOpen={isEventModalOpen}

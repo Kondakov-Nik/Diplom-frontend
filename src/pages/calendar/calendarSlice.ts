@@ -226,7 +226,7 @@ const calendarSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(createSymptomRecord.fulfilled, (state, _action) => {
+      .addCase(createSymptomRecord.fulfilled, (state, action) => {
         state.loading = false;
       })
       .addCase(createSymptomRecord.rejected, (state, action) => {
@@ -237,7 +237,7 @@ const calendarSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(createMedicationRecord.fulfilled, (state, _action) => {
+      .addCase(createMedicationRecord.fulfilled, (state, action) => {
         state.loading = false;
       })
       .addCase(createMedicationRecord.rejected, (state, action) => {
