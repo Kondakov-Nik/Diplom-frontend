@@ -131,6 +131,17 @@ export const createCustomSymptom = createAsyncThunk(
   }
 );
 
+// Thunk для добавления нового лекарства
+export const createCustomMedication = createAsyncThunk(
+  'calendar/createCustomMedication',
+  async (newMedication: { name: string; description: string; isCustom: boolean; userId: string }) => {
+    const response = await axios.post(`http://localhost:5001/api/medication`, newMedication, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    return response.data;
+  }
+);
+
 // Thunk для обновления записи
 export const updateRecord = createAsyncThunk(
   'calendar/updateRecord',
@@ -163,9 +174,9 @@ const calendarSlice = createSlice({
           const recordDate = new Date(record.recordDate);
           const time = recordDate.toTimeString().slice(0, 5);
           if (record.symptom) {
-            title = `${record.symptom.name} - ${time} - Тяжесть: ${record.weight}`;
+            title = `${record.symptom.name}`;
           } else if (record.medication) {
-            title = `Лекарство: ${record.medication.name} - ${time} - Количество: ${record.notes || ''} - Дозировка: ${record.dosage || ''} мг`;
+            title = `${record.medication.name}`;
           }
           return {
             id: record.id,
@@ -215,7 +226,7 @@ const calendarSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(createSymptomRecord.fulfilled, (state, action) => {
+      .addCase(createSymptomRecord.fulfilled, (state, _action) => {
         state.loading = false;
       })
       .addCase(createSymptomRecord.rejected, (state, action) => {
@@ -226,7 +237,7 @@ const calendarSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(createMedicationRecord.fulfilled, (state, action) => {
+      .addCase(createMedicationRecord.fulfilled, (state, _action) => {
         state.loading = false;
       })
       .addCase(createMedicationRecord.rejected, (state, action) => {
@@ -268,6 +279,21 @@ const calendarSlice = createSlice({
       .addCase(updateRecord.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Не удалось обновить запись';
+      })
+      .addCase(createCustomSymptom.fulfilled, (state, action) => {
+        state.symptoms.push(action.payload);
+      })
+      .addCase(createCustomMedication.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createCustomMedication.fulfilled, (state, action) => {
+        state.loading = false;
+        state.medications.push(action.payload);
+      })
+      .addCase(createCustomMedication.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Не удалось создать лекарство';
       });
   },
 });

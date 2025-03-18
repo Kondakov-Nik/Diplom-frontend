@@ -8,7 +8,7 @@ import { DateSelectArg, EventClickArg, EventApi } from '@fullcalendar/core';
 import Modal from 'react-modal';
 import ruLocale from '@fullcalendar/core/locales/ru';
 import Select from 'react-select';
-import { getAllHealthRecords, getAllSymptoms, getAllMedications, createSymptomRecord, createMedicationRecord, updateRecord, createCustomSymptom} from './calendarSlice';
+import { getAllHealthRecords, getAllSymptoms, getAllMedications, createSymptomRecord, createMedicationRecord, updateRecord, createCustomSymptom, createCustomMedication} from './calendarSlice';
 import { createEventId } from './event-utils';
 import './calendar.module.scss';
 import Cookies from 'js-cookie';
@@ -28,8 +28,9 @@ const Calendar: React.FC = () => {
   const symptoms = useAppSelector((state: any) => state.calendarSlice.symptoms);
   const medications = useAppSelector((state: any) => state.calendarSlice.medications);
 
-  const [weekendsVisible, setWeekendsVisible] = React.useState(true);
-  const [currentEvents, setCurrentEvents] = React.useState<EventApi[]>([]);
+  const [addingType, setAddingType] = React.useState<'symptom' | 'medication' | null>(null);
+  const [weekendsVisible] = React.useState(true);
+  const [, setCurrentEvents] = React.useState<EventApi[]>([]);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isAddNewModalOpen, setIsAddNewModalOpen] = React.useState(false);
   const [newSymptomName, setNewSymptomName] = React.useState<string>('');
@@ -39,7 +40,7 @@ const Calendar: React.FC = () => {
   const [isUpdateSymptomEventModalOpen, setIsUpdateSymptomEventModalOpen] = React.useState(false);
   const [isUpdateMedicalEventModalOpen, setIsUpdateMedicalEventModalOpen] = React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState<DateSelectArg | null>(null);
-  const [selectedType, setSelectedType] = React.useState<'symptom' | 'medication' | null>(null);
+  const [, setSelectedType] = React.useState<'symptom' | 'medication' | null>(null);
   const [selectedSymptom, setSelectedSymptom] = React.useState<number | null>(null);
   const [selectedMedication, setSelectedMedication] = React.useState<number | null>(null);
   const [severity, setSeverity] = React.useState<number | null>(null);
@@ -92,7 +93,8 @@ const Calendar: React.FC = () => {
     setIsMedicationModalOpen(type === 'medication');
   };
 
-  const openAddNewModal = () => {
+  const openAddNewModal = (type: 'symptom' | 'medication') => {
+    setAddingType(type);
     setIsAddNewModalOpen(true);
   };
   
@@ -279,20 +281,25 @@ const Calendar: React.FC = () => {
     }
   };
 
-  const handleCreateSymptom = async () => {
-    if (newSymptomName && userId) {
-      const newSymptom = {
+  const handleCreateItem = async () => {
+    if (newSymptomName && userId && addingType) {
+      const newItem = {
         name: newSymptomName,
         description: '',
         isCustom: true,
         userId,
       };
       try {
-        await dispatch(createCustomSymptom(newSymptom)).unwrap();
-        dispatch(getAllSymptoms(userId)); // Обновляем список симптомов
+        if (addingType === 'symptom') {
+          await dispatch(createCustomSymptom(newItem)).unwrap();
+          dispatch(getAllSymptoms(userId)); // Обновляем список симптомов
+        } else if (addingType === 'medication') {
+          await dispatch(createCustomMedication(newItem)).unwrap();
+          dispatch(getAllMedications(userId)); // Обновляем список лекарств
+        }
         closeAddNewModal();
       } catch (error) {
-        console.error('Ошибка при создании симптома:', error);
+        console.error(`Ошибка при создании ${addingType === 'symptom' ? 'симптома' : 'лекарства'}:`, error);
       }
     }
   };
@@ -430,7 +437,7 @@ const Calendar: React.FC = () => {
           />
           <p
             style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px' }}
-            onClick={openAddNewModal}
+            onClick={() => openAddNewModal('symptom')}
           >
             Не нашли нужного? Добавить свой
           </p>
@@ -490,25 +497,27 @@ const Calendar: React.FC = () => {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          zIndex: 9999,
+          zIndex: 10000,
         },
       }}
     >
-      <h2>Введите название</h2>
+      <h2>Введите название {addingType === 'symptom' ? 'симптома' : 'лекарства'}</h2>
       <input
         type="text"
         value={newSymptomName}
         onChange={(e) => setNewSymptomName(e.target.value)}
-        placeholder="Название симптома"
+        placeholder={`Название ${addingType === 'symptom' ? 'симптома' : 'лекарства'}`}
         style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
       />
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <button type="button" onClick={closeAddNewModal}>Выйти</button>
-        <button type="button" onClick={handleCreateSymptom}>Сохранить</button>
+        <button type="button" onClick={handleCreateItem}>Сохранить</button>
       </div>
     </Modal>
 
-      <Modal isOpen={isMedicationModalOpen} onRequestClose={closeMedicationModal} contentLabel="Input Medication Data Modal" 
+      <Modal isOpen={isMedicationModalOpen} 
+      onRequestClose={closeMedicationModal} 
+      contentLabel="Input Medication Data Modal" 
       style={{ content: {
             position: 'absolute',
             top: '50%',
@@ -535,36 +544,42 @@ const Calendar: React.FC = () => {
             alignItems: 'center',
             zIndex: 9999,
           }, }}>
-        <h2>Введите данные для лекарства</h2>
-        <form onSubmit={handleSaveMedication}>
-          <div>
-            <label>Название лекарства:</label>
-            <Select
-              value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
-              onChange={handleMedicationChange}
-              options={medicationOptions}
-              placeholder="Выберите лекарство"
-              isSearchable
-            />
-          </div>
-          <div>
-            <label>Время приема:</label>
-            <input type="time" value={medicationTime} onChange={handleMedicationTimeChange} />
-          </div>
-          <div>
-            <label>Количество (шт):</label>
-            <input type="number" value={quantity || ''} onChange={handleQuantityChange} placeholder="Количество" min="1" />
-          </div>
-          <div>
-            <label>Дозировка (мг):</label>
-            <input type="number" value={dosage || ''} onChange={handleDosageChange} placeholder="Дозировка" min="1" />
-          </div>
-          <div>
-            <button type="button" onClick={closeMedicationModal}>Закрыть</button>
-            <button type="submit">Сохранить</button>
-          </div>
-        </form>
-      </Modal>
+       <h2>Введите данные для лекарства</h2>
+      <form onSubmit={handleSaveMedication}>
+        <div>
+          <label>Название лекарства:</label>
+          <Select
+            value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
+            onChange={handleMedicationChange}
+            options={medicationOptions}
+            placeholder="Выберите лекарство"
+            isSearchable
+          />
+          <p
+            style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px' }}
+            onClick={() => openAddNewModal('medication')}
+          >
+            Не нашли нужного? Добавить своё
+          </p>
+        </div>
+        <div>
+          <label>Время приема:</label>
+          <input type="time" value={medicationTime} onChange={handleMedicationTimeChange} />
+        </div>
+        <div>
+          <label>Количество (шт):</label>
+          <input type="number" value={quantity || ''} onChange={handleQuantityChange} placeholder="Количество" min="1" />
+        </div>
+        <div>
+          <label>Дозировка (мг):</label>
+          <input type="number" value={dosage || ''} onChange={handleDosageChange} placeholder="Дозировка" min="1" />
+        </div>
+        <div>
+          <button type="button" onClick={closeMedicationModal}>Закрыть</button>
+          <button type="submit">Сохранить</button>
+        </div>
+      </form>
+    </Modal>
 
       <Modal
         isOpen={isEventModalOpen}
