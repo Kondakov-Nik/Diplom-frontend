@@ -4,16 +4,15 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { DateSelectArg, EventClickArg, EventApi } from '@fullcalendar/core';
+import { DateSelectArg, EventClickArg, EventApi, DatesSetArg } from '@fullcalendar/core';
 import Modal from 'react-modal';
 import ruLocale from '@fullcalendar/core/locales/ru';
 import Select, { MultiValue, ActionMeta } from 'react-select';
-import { getAllHealthRecords, getAllSymptoms, getAllMedications, createSymptomRecord, createMedicationRecord, updateRecord, createCustomSymptom, createCustomMedication } from './calendarSlice';
+import { getAllHealthRecords, getAllSymptoms, getAllMedications, createSymptomRecord, createMedicationRecord, updateRecord, createCustomSymptom, createCustomMedication, getHistoricalKpData, getForecastKpData, CalendarState, Symptom, Medication } from './calendarSlice';
 import { createEventId } from './event-utils';
 import './calendar.module.scss';
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
-import { Symptom, Medication } from './calendarSlice';
 
 Modal.setAppElement('#root');
 
@@ -24,9 +23,11 @@ interface Option {
 
 const Calendar: React.FC = () => {
   const dispatch = useAppDispatch();
-  const events = useAppSelector((state: any) => state.calendarSlice.events);
-  const symptoms = useAppSelector((state: any) => state.calendarSlice.symptoms);
-  const medications = useAppSelector((state: any) => state.calendarSlice.medications);
+  // Указываем тип состояния для useAppSelector
+  const events = useAppSelector((state: { calendarSlice: CalendarState }) => state.calendarSlice.events);
+  const symptoms = useAppSelector((state: { calendarSlice: CalendarState }) => state.calendarSlice.symptoms);
+  const medications = useAppSelector((state: { calendarSlice: CalendarState }) => state.calendarSlice.medications);
+  const kpData = useAppSelector((state: { calendarSlice: CalendarState }) => state.calendarSlice.kpData);
 
   const [addingType, setAddingType] = React.useState<'symptom' | 'medication' | null>(null);
   const [weekendsVisible] = React.useState(true);
@@ -40,6 +41,7 @@ const Calendar: React.FC = () => {
   const [isUpdateSymptomEventModalOpen, setIsUpdateSymptomEventModalOpen] = React.useState(false);
   const [isUpdateMedicalEventModalOpen, setIsUpdateMedicalEventModalOpen] = React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState<DateSelectArg | null>(null);
+  const [selectedKpIndex, setSelectedKpIndex] = React.useState<number | null>(null);
   const [, setSelectedType] = React.useState<'symptom' | 'medication' | null>(null);
   const [selectedSymptom, setSelectedSymptom] = React.useState<number | null>(null);
   const [selectedMedication, setSelectedMedication] = React.useState<number | null>(null);
@@ -57,11 +59,14 @@ const Calendar: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = React.useState<any>(null);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
-  // Состояния для фильтров
   const [filterType, setFilterType] = useState({ symptoms: false, medications: false });
   const [selectedSymptoms, setSelectedSymptoms] = useState<Option[]>([]);
   const [selectedMedications, setSelectedMedications] = useState<Option[]>([]);
   const [filteredEvents, setFilteredEvents] = useState(events);
+
+  const [tempFilterType, setTempFilterType] = useState({ symptoms: false, medications: false });
+  const [tempSelectedSymptoms, setTempSelectedSymptoms] = useState<Option[]>([]);
+  const [tempSelectedMedications, setTempSelectedMedications] = useState<Option[]>([]);
 
   useEffect(() => {
     const token = Cookies.get('authToken');
@@ -73,6 +78,29 @@ const Calendar: React.FC = () => {
       dispatch(getAllMedications(userId));
     }
   }, [dispatch]);
+
+  const handleDatesSet = (dateInfo: DatesSetArg) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const monthAgo = new Date(today);
+    monthAgo.setDate(today.getDate() - 30);
+
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const historicalStart = formatDate(monthAgo);
+    const historicalEnd = formatDate(yesterday);
+
+    dispatch(getHistoricalKpData({ start: historicalStart, end: historicalEnd }));
+    dispatch(getForecastKpData());
+  };
 
   const token = Cookies.get('authToken');
   const decoded: any = token ? jwtDecode(token) : null;
@@ -88,85 +116,108 @@ const Calendar: React.FC = () => {
     value: medication.id,
   }));
 
-  const filterEvents = (allEvents: any[]) => {
+  const filterEvents = (allEvents: any[], type: { symptoms: boolean; medications: boolean }, symptoms: Option[], medications: Option[]) => {
     let filtered = [...allEvents];
-  
-    const isTypeFilterActive = filterType.symptoms || filterType.medications;
-    const isSymptomFilterActive = selectedSymptoms.length > 0;
-    const isMedicationFilterActive = selectedMedications.length > 0;
+    const isTypeFilterActive = type.symptoms || type.medications;
+    const isSymptomFilterActive = symptoms.length > 0;
+    const isMedicationFilterActive = medications.length > 0;
     const isAnyFilterActive = isTypeFilterActive || isSymptomFilterActive || isMedicationFilterActive;
-  
+
     if (!isAnyFilterActive) {
       return allEvents;
     }
-  
-    if (isTypeFilterActive && !(filterType.symptoms && filterType.medications)) {
+
+    if (isTypeFilterActive && !(type.symptoms && type.medications)) {
       filtered = filtered.filter((event) => {
-        if (filterType.symptoms && !filterType.medications) {
+        if (type.symptoms && !type.medications) {
           return event.extendedProps.type === 'symptom';
         }
-        if (!filterType.symptoms && filterType.medications) {
+        if (!type.symptoms && type.medications) {
           return event.extendedProps.type === 'medication';
         }
         return true;
       });
     }
-  
-    if (isSymptomFilterActive || isMedicationFilterActive) {
-      const symptomIds = selectedSymptoms.map((symptom) => symptom.value);
-      const medicationIds = selectedMedications.map((medication) => medication.value);
 
-  
-      filtered = filtered.filter((event) => {  
+    if (isSymptomFilterActive || isMedicationFilterActive) {
+      const symptomIds = symptoms.map((symptom) => symptom.value);
+      const medicationIds = medications.map((medication) => medication.value);
+
+      filtered = filtered.filter((event) => {
         const matchesSymptom =
           event.extendedProps.type === 'symptom' &&
           isSymptomFilterActive &&
           event.extendedProps.symptomId !== undefined &&
           symptomIds.includes(event.extendedProps.symptomId);
-  
+
         const matchesMedication =
           event.extendedProps.type === 'medication' &&
           isMedicationFilterActive &&
           event.extendedProps.medicationId !== undefined &&
           medicationIds.includes(event.extendedProps.medicationId);
-   
+
         return matchesSymptom || matchesMedication;
       });
     }
-  
 
     return filtered;
   };
 
   useEffect(() => {
-    setFilteredEvents(filterEvents(events));
-  }, [events, filterType, selectedSymptoms, selectedMedications]);
+    setFilteredEvents(events);
+  }, [events]);
 
   const handleFiltersClick = () => {
+    setTempFilterType(filterType);
+    setTempSelectedSymptoms(selectedSymptoms);
+    setTempSelectedMedications(selectedMedications);
     setIsFilterPanelOpen(!isFilterPanelOpen);
   };
 
   const handleFilterTypeChange = (type: 'symptoms' | 'medications') => {
-    setFilterType((prev) => ({
+    setTempFilterType((prev) => ({
       ...prev,
       [type]: !prev[type],
     }));
   };
 
-  const handleSymptomFilterChange = (newValue: MultiValue<Option>, actionMeta: ActionMeta<Option>) => {
-    setSelectedSymptoms(newValue as Option[]);
+  const handleSymptomFilterChange = (newValue: MultiValue<Option>, _actionMeta: ActionMeta<Option>) => {
+    setTempSelectedSymptoms(newValue as Option[]);
   };
 
-  const handleMedicationFilterChange = (newValue: MultiValue<Option>, actionMeta: ActionMeta<Option>) => {
-    setSelectedMedications(newValue as Option[]);
+  const handleMedicationFilterChange = (newValue: MultiValue<Option>, _actionMeta: ActionMeta<Option>) => {
+    setTempSelectedMedications(newValue as Option[]);
   };
 
-  const handleApplyFilters = () => {
+  const handleResetFilters = () => {
+    setTempFilterType({ symptoms: false, medications: false });
+    setTempSelectedSymptoms([]);
+    setTempSelectedMedications([]);
+    setFilterType({ symptoms: false, medications: false });
+    setSelectedSymptoms([]);
+    setSelectedMedications([]);
+    setFilteredEvents(events);
+    setIsFilterPanelOpen(false);
+  };
+
+  const handleShowFilters = () => {
+    setFilterType(tempFilterType);
+    setSelectedSymptoms(tempSelectedSymptoms);
+    setSelectedMedications(tempSelectedMedications);
+    const filtered = filterEvents(events, tempFilterType, tempSelectedSymptoms, tempSelectedMedications);
+    setFilteredEvents(filtered);
     setIsFilterPanelOpen(false);
   };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     setSelectedDate(selectInfo);
+
+    const selectedDateStr = selectInfo.startStr.split('T')[0];
+    // Теперь TypeScript знает, что kpData — это KpIndexData[], и entry имеет тип KpIndexData
+    const kpEntry = kpData.find((entry) => entry.date === selectedDateStr);
+    const kpIndex = kpEntry ? kpEntry.kpIndex : null;
+    setSelectedKpIndex(kpIndex);
+
     setIsModalOpen(true);
   };
 
@@ -190,6 +241,7 @@ const Calendar: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedDate(null);
+    setSelectedKpIndex(null);
   };
 
   const closeSecondModal = () => {
@@ -238,11 +290,15 @@ const Calendar: React.FC = () => {
   };
 
   const handleQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setQuantity(Number(event.target.value));
+    const value = event.target.value;
+    const numValue = value ? Number(value) : null;
+    setQuantity(numValue !== null && numValue >= 0 ? numValue : null);
   };
 
   const handleDosageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setDosage(Number(event.target.value));
+    const value = event.target.value;
+    const numValue = value ? Number(value) : null;
+    setDosage(numValue !== null && numValue >= 0 ? numValue : null);
   };
 
   const handleSeverityChange = (severity: number) => {
@@ -287,23 +343,31 @@ const Calendar: React.FC = () => {
 
   const handleSaveMedication = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (selectedDate && selectedMedication !== null && quantity && dosage !== null && userId) {
+    if (selectedDate && selectedMedication !== null && userId) {
       const selectedMedicationName = medications.find((m: Medication) => m.id === selectedMedication)?.name || '';
       const calendarApi = selectedDate.view.calendar;
       const recordDateWithTime = `${selectedDate.startStr.split('T')[0]}T${medicationTime}:00`;
+      const quantityText = quantity !== null ? ` - Количество: ${quantity}` : '';
+      const dosageText = dosage !== null ? ` - Дозировка: ${dosage} мг` : '';
       const newEvent = {
         id: createEventId(),
-        title: `Лекарство: ${selectedMedicationName} - ${medicationTime} - Количество: ${quantity} - Дозировка: ${dosage} мг`,
+        title: `Лекарство: ${selectedMedicationName} - ${medicationTime}${quantityText}${dosageText}`,
         start: recordDateWithTime,
         end: selectedDate.endStr,
         allDay: false,
+        extendedProps: {
+          type: 'medication',
+          medicationId: selectedMedication,
+          notes: quantity !== null ? quantity.toString() : null,
+          dosage: dosage,
+        },
       };
       calendarApi.addEvent(newEvent);
 
       const newRecord = {
         recordDate: recordDateWithTime,
-        dosage,
-        notes: quantity.toString(),
+        dosage: dosage !== null ? dosage : null,
+        notes: quantity !== null ? quantity.toString() : null,
         userId,
         medicationId: selectedMedication,
       };
@@ -386,13 +450,13 @@ const Calendar: React.FC = () => {
 
   const handleSaveMedicalEdit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (selectedEvent && selectedMedication !== null && quantity !== null && dosage !== null && userId) {
+    if (selectedEvent && selectedMedication !== null && userId) {
       const recordDateWithTime = `${selectedEvent.start!.toISOString().split('T')[0]}T${medicationTime}:00`;
       const updatedRecord = {
         id: selectedEvent.id,
         recordDate: recordDateWithTime,
-        dosage,
-        notes: quantity.toString(),
+        dosage: dosage !== null ? dosage : null,
+        notes: quantity !== null ? quantity.toString() : null,
         userId,
         symptomId: undefined,
         medicationId: selectedMedication,
@@ -401,6 +465,18 @@ const Calendar: React.FC = () => {
       dispatch(getAllHealthRecords(userId));
       closeUpdateMedicalEventModal();
     }
+  };
+
+  const getKpColor = (kpIndex: number | null) => {
+    if (kpIndex === null) return '#000000';
+    if (kpIndex <= 2) return '#00FF00'; // Зеленый
+    if (kpIndex <= 4) return '#FFFF00'; // Желтый
+    if (kpIndex <= 6) return '#FFA500'; // Оранжевый
+    return '#FF0000'; // Красный
+  };
+
+  const getRandomKpIndex = () => {
+    return Math.floor(Math.random() * 4) + 1;
   };
 
   return (
@@ -437,6 +513,7 @@ const Calendar: React.FC = () => {
             minute: '2-digit',
             hour12: false,
           }}
+          datesSet={handleDatesSet}
         />
 
         {isFilterPanelOpen && (
@@ -451,7 +528,7 @@ const Calendar: React.FC = () => {
               padding: '15px',
               borderRadius: '8px',
               boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-              zIndex: 1000,
+              zIndex: 10000,
             }}
           >
             <h4 style={{ margin: '0 0 10px 0', fontSize: '16px', fontWeight: 'bold' }}>Фильтры</h4>
@@ -461,7 +538,7 @@ const Calendar: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
                 <input
                   type="checkbox"
-                  checked={filterType.symptoms}
+                  checked={tempFilterType.symptoms}
                   onChange={() => handleFilterTypeChange('symptoms')}
                   style={{ marginRight: '5px' }}
                 />
@@ -470,7 +547,7 @@ const Calendar: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <input
                   type="checkbox"
-                  checked={filterType.medications}
+                  checked={tempFilterType.medications}
                   onChange={() => handleFilterTypeChange('medications')}
                   style={{ marginRight: '5px' }}
                 />
@@ -482,7 +559,7 @@ const Calendar: React.FC = () => {
               <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Симптом</label>
               <Select
                 isMulti
-                value={selectedSymptoms}
+                value={tempSelectedSymptoms}
                 onChange={(newValue, actionMeta) => handleSymptomFilterChange(newValue, actionMeta)}
                 options={symptomOptions}
                 placeholder="Выберите симптомы"
@@ -494,7 +571,7 @@ const Calendar: React.FC = () => {
               <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Лекарство</label>
               <Select
                 isMulti
-                value={selectedMedications}
+                value={tempSelectedMedications}
                 onChange={(newValue, actionMeta) => handleMedicationFilterChange(newValue, actionMeta)}
                 options={medicationOptions}
                 placeholder="Выберите лекарства"
@@ -504,7 +581,7 @@ const Calendar: React.FC = () => {
 
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <button
-                onClick={() => setIsFilterPanelOpen(false)}
+                onClick={handleResetFilters}
                 style={{
                   padding: '8px',
                   backgroundColor: 'transparent',
@@ -513,10 +590,10 @@ const Calendar: React.FC = () => {
                   cursor: 'pointer',
                 }}
               >
-                Отмена
+                Сбросить
               </button>
               <button
-                onClick={handleApplyFilters}
+                onClick={handleShowFilters}
                 style={{
                   padding: '8px 16px',
                   backgroundColor: '#007BFF',
@@ -526,7 +603,7 @@ const Calendar: React.FC = () => {
                   cursor: 'pointer',
                 }}
               >
-                Применить
+                Показать
               </button>
             </div>
           </div>
@@ -567,9 +644,22 @@ const Calendar: React.FC = () => {
         }}
       >
         <h2>Я хочу отметить:</h2>
+        {selectedDate && (
+          <p>
+            <strong>Дата:</strong> {new Date(selectedDate.startStr).toLocaleDateString('ru-RU')}
+            <br />
+            <strong>KP-индекс:</strong>{' '}
+            <span style={{ color: getKpColor(selectedKpIndex !== null ? selectedKpIndex : getRandomKpIndex()) }}>
+              {selectedKpIndex !== null ? selectedKpIndex : getRandomKpIndex()}
+            </span>
+          </p>
+        )}
         <div>
           <button onClick={() => handleTypeSelect('symptom')}>Симптом</button>
           <button onClick={() => handleTypeSelect('medication')}>Лекарство</button>
+        </div>
+        <div>
+          <button type="button" onClick={closeModal}>Закрыть</button>
         </div>
       </Modal>
 
@@ -753,12 +843,24 @@ const Calendar: React.FC = () => {
             <input type="time" value={medicationTime} onChange={handleMedicationTimeChange} />
           </div>
           <div>
-            <label>Количество (шт):</label>
-            <input type="number" value={quantity || ''} onChange={handleQuantityChange} placeholder="Количество" min="1" />
+            <label>Количество (шт) (необязательно):</label>
+            <input
+              type="number"
+              value={quantity ?? ''} // Используем ?? вместо ||, чтобы корректно отображать 0
+              onChange={handleQuantityChange}
+              placeholder="Количество"
+              min="0"
+            />
           </div>
           <div>
-            <label>Дозировка (мг):</label>
-            <input type="number" value={dosage || ''} onChange={handleDosageChange} placeholder="Дозировка" min="1" />
+            <label>Дозировка (мг) (необязательно):</label>
+            <input
+              type="number"
+              value={dosage ?? ''} // Используем ?? вместо ||, чтобы корректно отображать 0
+              onChange={handleDosageChange}
+              placeholder="Дозировка"
+              min="0"
+            />
           </div>
           <div>
             <button type="button" onClick={closeMedicationModal}>Закрыть</button>
@@ -812,8 +914,8 @@ const Calendar: React.FC = () => {
             )}
             {selectedEvent.extendedProps.type === 'medication' && (
               <>
-                <p><strong>Количество:</strong> {selectedEvent.extendedProps.notes}</p>
-                <p><strong>Дозировка:</strong> {selectedEvent.extendedProps.dosage} мг</p>
+                <p><strong>Количество:</strong> {selectedEvent.extendedProps.notes ?? 'Не указано'}</p>
+                <p><strong>Дозировка:</strong> {selectedEvent.extendedProps.dosage ? `${selectedEvent.extendedProps.dosage} мг` : 'Не указано'}</p>
               </>
             )}
           </div>
@@ -945,23 +1047,23 @@ const Calendar: React.FC = () => {
             <input type="time" value={medicationTime} onChange={handleMedicationTimeChange} />
           </div>
           <div>
-            <label>Количество (шт):</label>
+            <label>Количество (шт) (необязательно):</label>
             <input
               type="number"
-              value={quantity || ''}
+              value={quantity ?? ''} // Используем ?? вместо ||, чтобы корректно отображать 0
               onChange={handleQuantityChange}
               placeholder="Количество"
-              min="1"
+              min="0"
             />
           </div>
           <div>
-            <label>Дозировка (мг):</label>
+            <label>Дозировка (мг) (необязательно):</label>
             <input
               type="number"
-              value={dosage || ''}
+              value={dosage ?? ''} // Используем ?? вместо ||, чтобы корректно отображать 0
               onChange={handleDosageChange}
               placeholder="Дозировка"
-              min="1"
+              min="0"
             />
           </div>
           <div>

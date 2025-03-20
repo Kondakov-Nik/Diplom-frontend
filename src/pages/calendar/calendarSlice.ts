@@ -1,3 +1,4 @@
+// calendarSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -15,6 +16,12 @@ export interface Medication {
   isCustom: boolean;
 }
 
+// Интерфейс для данных KP-индекса
+export interface KpIndexData {
+  date: string;
+  kpIndex: number | null;
+}
+
 // Интерфейс для новой записи о симптоме
 interface NewSymptomRecord {
   recordDate: string;
@@ -27,7 +34,7 @@ interface NewSymptomRecord {
 // Интерфейс для новой записи о лекарстве
 interface NewMedicationRecord {
   recordDate: string;
-  dosage: number;
+  dosage: number | null;
   notes: string | null;
   userId: string;
   medicationId: number;
@@ -38,7 +45,7 @@ interface UpdateRecord {
   id: string;
   recordDate?: string;
   weight?: number;
-  dosage?: number;
+  dosage?: number | null | undefined;
   notes?: string | null;
   userId: string;
   symptomId?: number;
@@ -46,10 +53,12 @@ interface UpdateRecord {
 }
 
 // Интерфейс состояния
-interface CalendarState {
+export interface CalendarState {
+  // Экспортируем интерфейс для использования в других файлах
   events: any[];
   symptoms: Symptom[];
   medications: Medication[];
+  kpData: KpIndexData[];
   loading: boolean;
   error: string | null;
 }
@@ -59,6 +68,7 @@ const initialState: CalendarState = {
   events: [],
   symptoms: [],
   medications: [],
+  kpData: [],
   loading: false,
   error: null,
 };
@@ -95,6 +105,26 @@ export const getAllMedications = createAsyncThunk(
       headers: { Authorization: 'Bearer ' + token },
     });
     return response.data;
+  }
+);
+
+// Thunk для получения исторических данных KP-индекса
+export const getHistoricalKpData = createAsyncThunk(
+  'calendar/getHistoricalKpData',
+  async ({ start, end }: { start: string; end: string }) => {
+    const response = await axios.get('http://localhost:5001/api/kp-index', {
+      params: { start, end },
+    });
+    return response.data as KpIndexData[];
+  }
+);
+
+// Thunk для получения прогнозных данных KP-индекса
+export const getForecastKpData = createAsyncThunk(
+  'calendar/getForecastKpData',
+  async () => {
+    const response = await axios.get('http://localhost:5001/api/kp-index/forecast');
+    return response.data as KpIndexData[];
   }
 );
 
@@ -221,6 +251,38 @@ const calendarSlice = createSlice({
       .addCase(getAllMedications.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Не удалось загрузить лекарства';
+      })
+      .addCase(getHistoricalKpData.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getHistoricalKpData.fulfilled, (state, action) => {
+        state.loading = false;
+        // Объединяем исторические данные с существующими, избегая дубликатов
+        state.kpData = [
+          ...action.payload,
+          ...state.kpData.filter((d) => !action.payload.some((h) => h.date === d.date)),
+        ];
+      })
+      .addCase(getHistoricalKpData.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Не удалось загрузить исторические данные KP-индекса';
+      })
+      .addCase(getForecastKpData.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getForecastKpData.fulfilled, (state, action) => {
+        state.loading = false;
+        // Объединяем прогнозные данные с существующими, избегая дубликатов
+        state.kpData = [
+          ...state.kpData.filter((d) => !action.payload.some((f) => f.date === d.date)),
+          ...action.payload,
+        ];
+      })
+      .addCase(getForecastKpData.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Не удалось загрузить прогнозные данные KP-индекса';
       })
       .addCase(createSymptomRecord.pending, (state) => {
         state.loading = true;
