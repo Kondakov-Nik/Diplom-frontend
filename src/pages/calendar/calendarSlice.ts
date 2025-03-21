@@ -197,6 +197,7 @@ const calendarSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
+    
       .addCase(getAllHealthRecords.fulfilled, (state, action) => {
         state.loading = false;
         state.events = action.payload.map((record: any) => {

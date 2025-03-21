@@ -211,13 +211,25 @@ const Calendar: React.FC = () => {
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     setSelectedDate(selectInfo);
-
+  
     const selectedDateStr = selectInfo.startStr.split('T')[0];
-    // Теперь TypeScript знает, что kpData — это KpIndexData[], и entry имеет тип KpIndexData
+    const selectedDateObj = new Date(selectedDateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Сбрасываем время для корректного сравнения
+  
+    // Находим KP-индекс для выбранной даты в kpData
     const kpEntry = kpData.find((entry) => entry.date === selectedDateStr);
     const kpIndex = kpEntry ? kpEntry.kpIndex : null;
-    setSelectedKpIndex(kpIndex);
-
+  
+    // Устанавливаем KP-индекс в зависимости от типа даты
+    if (selectedDateObj < today) {
+      // Прошедшая дата: отображаем только если есть данные в kpData (исторические)
+      setSelectedKpIndex(kpIndex);
+    } else if (selectedDateObj >= today) {
+      // Сегодняшняя или будущая дата: отображаем только если есть данные в kpData (прогноз)
+      setSelectedKpIndex(kpIndex);
+    }
+  
     setIsModalOpen(true);
   };
 
@@ -469,14 +481,10 @@ const Calendar: React.FC = () => {
 
   const getKpColor = (kpIndex: number | null) => {
     if (kpIndex === null) return '#000000';
-    if (kpIndex <= 2) return '#00FF00'; // Зеленый
-    if (kpIndex <= 4) return '#FFFF00'; // Желтый
-    if (kpIndex <= 6) return '#FFA500'; // Оранжевый
+    if (kpIndex <= 2) return '#FF0000'; // Зеленый
+    if (kpIndex <= 4) return '#FF0000'; // Желтый
+    if (kpIndex <= 6) return '#FF0000'; // Оранжевый
     return '#FF0000'; // Красный
-  };
-
-  const getRandomKpIndex = () => {
-    return Math.floor(Math.random() * 4) + 1;
   };
 
   return (
@@ -611,57 +619,61 @@ const Calendar: React.FC = () => {
       </div>
 
       <Modal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        contentLabel="Select Type Modal"
-        style={{
-          content: {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            right: 'auto',
-            bottom: 'auto',
-            transform: 'translate(-50%, -50%)',
-            width: '400px',
-            maxWidth: '90%',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-            backgroundColor: 'white',
-          },
-          overlay: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9999,
-          },
-        }}
-      >
-        <h2>Я хочу отметить:</h2>
-        {selectedDate && (
-          <p>
-            <strong>Дата:</strong> {new Date(selectedDate.startStr).toLocaleDateString('ru-RU')}
-            <br />
-            <strong>KP-индекс:</strong>{' '}
-            <span style={{ color: getKpColor(selectedKpIndex !== null ? selectedKpIndex : getRandomKpIndex()) }}>
-              {selectedKpIndex !== null ? selectedKpIndex : getRandomKpIndex()}
+      isOpen={isModalOpen}
+      onRequestClose={closeModal}
+      contentLabel="Select Type Modal"
+      style={{
+        content: {
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          right: 'auto',
+          bottom: 'auto',
+          transform: 'translate(-50%, -50%)',
+          width: '400px',
+          maxWidth: '90%',
+          padding: '20px',
+          borderRadius: '8px',
+          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+          backgroundColor: 'white',
+        },
+        overlay: {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+        },
+      }}
+    >
+      <h2>Я хочу отметить:</h2>
+      {selectedDate && (
+        <p>
+          <strong>Дата:</strong> {new Date(selectedDate.startStr).toLocaleDateString('ru-RU')}
+          <br />
+          <strong>KP-индекс:</strong>{' '}
+          {selectedKpIndex !== null ? (
+            <span style={{ color: getKpColor(selectedKpIndex) }}>
+              {selectedKpIndex}
             </span>
-          </p>
-        )}
-        <div>
-          <button onClick={() => handleTypeSelect('symptom')}>Симптом</button>
-          <button onClick={() => handleTypeSelect('medication')}>Лекарство</button>
-        </div>
-        <div>
-          <button type="button" onClick={closeModal}>Закрыть</button>
-        </div>
-      </Modal>
+          ) : (
+            <span>Нет данных</span>
+          )}
+        </p>
+      )}
+      <div>
+        <button onClick={() => handleTypeSelect('symptom')}>Симптом</button>
+        <button onClick={() => handleTypeSelect('medication')}>Лекарство</button>
+      </div>
+      <div>
+        <button type="button" onClick={closeModal}>Закрыть</button>
+      </div>
+    </Modal>
 
       <Modal
         isOpen={isSymptomModalOpen}
