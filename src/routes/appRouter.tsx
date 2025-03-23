@@ -8,7 +8,7 @@ import s from "./appContainer.module.scss"
 import Header from "../layouts/header/headerComponent";
 import Footer from "../layouts/footer/footerComponent";
 import AuthForm from "../features/authForm";
-
+import Main from "../pages/main/main";
 
 const AppRouter: React.FC = () => {
   return (
@@ -19,8 +19,9 @@ const AppRouter: React.FC = () => {
         <Route path="/" element={<Home />} />
         <Route path="/Calendar" element={<Calendar />} />
         <Route path="/Login" element={<AuthForm />} />
-{        <Route path="/Personalpage" element={<Personalpage/>} />}
-         <Route path="/Report" element={<Report />} />
+        <Route path="/Personalpage" element={<Personalpage/>} />
+        <Route path="/Report" element={<Report />} />
+        <Route path="/Home" element={<Main />} />
 {/*         <Route path="*" element={<NotFound />} />
  */}      </Routes>
       </div>

@@ -4,13 +4,15 @@ import authSlice from '../features/authForm/authSlice';
 import reportSlice from '../pages/report/reportSlice';
 import personalpageSlice from '../pages/personalpage/personalpageSlice';
 import calendarSlice from '../pages/calendar/calendarSlice';
+//import mainSlice from '../pages/main/mainSlice';
 
 
 const rootReducers = combineReducers({
   reportSlice,
   authSlice,
   personalpageSlice,
-  calendarSlice
+  calendarSlice,
+//  mainSlice
 })
 
 
