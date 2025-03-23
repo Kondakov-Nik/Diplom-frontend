@@ -1,105 +1,103 @@
 .pageContainer {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-  }
-  
-  .heading {
-    font-size: 28px;
-    font-weight: bold;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  
-  .metricsSection {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
-  }
-  
-  .metricCard {
-    background-color: #f5f5f5;
-    padding: 20px;
-    border-radius: 8px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .healthStatus {
-    &.healthy {
-      background-color: #d4edda; /* Зелёный для "Здоров" */
-    }
-    &.warning {
-      background-color: #fff3cd; /* Жёлтый для "Лёгкий дискомфорт" */
-    }
-    &.sick {
-      background-color: #f8d7da; /* Красный для "Болезнь" */
-    }
-  }
-  
-  .metricTitle {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 10px;
-  }
-  
-  .metricValue {
-    font-size: 24px;
-    font-weight: bold;
-    margin: 0;
-  }
-  
-  .metricSubtitle {
-    font-size: 14px;
-    color: #666;
-    margin-top: 5px;
-  }
-  
-  /* Стили для футера */
-  .footerContainer {
-    margin-top: auto;
-    display: flex;
-    justify-content: center;
-    background-color: rgb(126, 178, 184);
-    width: 100%;
-    padding: 10px 20px;
-  }
-  
-  .footer {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    color: #edf1c0;
-    font-size: 14px;
-  }
-  
-  .info {
-    text-align: center;
-    margin-bottom: 10px;
-  
-    p {
-      margin: 5px 0;
-    }
-  }
-  
-  .links {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 10px;
-  
-    a {
-      text-decoration: none;
-      color: #edf1c0;
-      font-size: 14px;
-      transition: color 0.3s ease;
-  
-      &:hover {
-        color: #fcffda;
-      }
-    }
-  }
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Приветственная секция */
+.welcomeSection {
+  margin-bottom: 30px;
+}
+
+.welcomeText {
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.welcomeSubtitle {
+  font-size: 16px;
+  font-weight: 400;
+  color: #888;
+  margin-top: 8px;
+}
+
+/* Новые цветные карточки */
+.topMetrics {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.topMetricCard {
+  flex: 1;
+  padding: 20px;
+  border-radius: 10px;
+  color: white;
+  text-align: center;
+}
+
+.consecutiveDaysWithoutSymptoms {
+  background: linear-gradient(135deg, #ff7e5f, #feb47b); /* Оранжево-розовый градиент */
+}
+
+.symptomsThisMonth {
+  background: linear-gradient(135deg, #6b48ff, #9981ff); /* Фиолетовый градиент */
+}
+
+.medicationsThisMonth {
+  background: linear-gradient(135deg, #ff6f91, #ff9ab5); /* Розовый градиент */
+}
+
+.mostFrequentSymptom {
+  background: linear-gradient(135deg, #1ccfc9, #6af6f0); /* Бирюзовый градиент */
+}
+
+.topMetricLabel {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.topMetricValue {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
+}
+
+
+/* Футер */
+.footerContainer {
+  margin-top: 40px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+}
+
+.info {
+  font-size: 14px;
+  color: #666;
+}
+
+.links a {
+  margin-left: 15px;
+  color: #7eb2b8;
+  text-decoration: none;
+}
+
+.links a:hover {
+  text-decoration: underline;
+}
+
+/* Стили для ошибок */
+.error {
+  color: red;
+  text-align: center;
+  margin: 20px 0;
+}
