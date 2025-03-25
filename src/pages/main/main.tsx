@@ -1,15 +1,30 @@
 import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/hooks';
 import { getUserData } from '../personalpage/personalpageSlice';
-import { fetchHealthRecords } from './mainSlice';
+import { fetchHealthRecords, fetchKpIndexForThreeDays } from './mainSlice';
 import styles from './main.module.scss';
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
 import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 
 // Регистрация компонентов Chart.js
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 // Функция для вычисления метрик (без изменений)
 const calculateMetrics = (healthRecords: any[]) => {
@@ -27,8 +42,8 @@ const calculateMetrics = (healthRecords: any[]) => {
   const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
 
   const symptomDates = healthRecords
-    .filter(record => record.symptomId !== null)
-    .map(record => new Date(record.recordDate))
+    .filter((record) => record.symptomId !== null)
+    .map((record) => new Date(record.recordDate))
     .sort((a, b) => b.getTime() - a.getTime());
 
   let consecutiveDaysWithoutSymptoms = 0;
@@ -43,18 +58,18 @@ const calculateMetrics = (healthRecords: any[]) => {
     );
   }
 
-  const symptomsThisMonth = healthRecords.filter(record => {
+  const symptomsThisMonth = healthRecords.filter((record) => {
     const recordDate = new Date(record.recordDate);
     return record.symptomId !== null && recordDate >= oneMonthAgo;
   }).length;
 
-  const medicationsThisMonth = healthRecords.filter(record => {
+  const medicationsThisMonth = healthRecords.filter((record) => {
     const recordDate = new Date(record.recordDate);
     return record.medicationId !== null && recordDate >= oneMonthAgo;
   }).length;
 
   const symptomFrequency: { [key: string]: number } = {};
-  healthRecords.forEach(record => {
+  healthRecords.forEach((record) => {
     const recordDate = new Date(record.recordDate);
     if (record.symptomId !== null && recordDate >= oneMonthAgo) {
       const symptomName = record.symptom?.name || 'Неизвестный симптом';
@@ -76,7 +91,7 @@ const calculateMetrics = (healthRecords: any[]) => {
   };
 };
 
-// Функция для вычисления дней болезни по месяцам (с небольшими изменениями для стилей)
+// Функция для вычисления дней болезни по месяцам (без изменений)
 const calculateSickDaysByMonth = (healthRecords: any[]) => {
   if (!Array.isArray(healthRecords)) {
     return { labels: [], datasets: [] };
@@ -85,15 +100,13 @@ const calculateSickDaysByMonth = (healthRecords: any[]) => {
   const today = new Date();
   const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
 
-  // Фильтруем записи за последний год с симптомами
-  const sickRecords = healthRecords.filter(record => {
+  const sickRecords = healthRecords.filter((record) => {
     const recordDate = new Date(record.recordDate);
     return record.symptomId !== null && recordDate >= oneYearAgo && recordDate <= today;
   });
 
-  // Группируем уникальные дни болезни по месяцам
   const sickDaysByMonth: { [key: string]: Set<string> } = {};
-  sickRecords.forEach(record => {
+  sickRecords.forEach((record) => {
     const date = new Date(record.recordDate);
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     if (!sickDaysByMonth[monthKey]) {
@@ -102,7 +115,6 @@ const calculateSickDaysByMonth = (healthRecords: any[]) => {
     sickDaysByMonth[monthKey].add(date.toISOString().split('T')[0]);
   });
 
-  // Генерируем список месяцев за последний год
   const months = [];
   for (let i = 11; i >= 0; i--) {
     const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -110,14 +122,13 @@ const calculateSickDaysByMonth = (healthRecords: any[]) => {
     months.push(monthKey);
   }
 
-  // Подготавливаем данные для гистограммы
-  const labels = months.map(month => {
+  const labels = months.map((month) => {
     const [year, monthNum] = month.split('-');
     const monthNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-    return `${monthNames[parseInt(monthNum) - 1]} ${year.slice(2)}`; // Формат: "Янв 23"
+    return `${monthNames[parseInt(monthNum) - 1]} ${year.slice(2)}`;
   });
 
-  const data = months.map(month => (sickDaysByMonth[month] ? sickDaysByMonth[month].size : 0));
+  const data = months.map((month) => (sickDaysByMonth[month] ? sickDaysByMonth[month].size : 0));
 
   return {
     labels,
@@ -129,14 +140,32 @@ const calculateSickDaysByMonth = (healthRecords: any[]) => {
           const chart = context.chart;
           const { ctx } = chart;
           const gradient = ctx.createLinearGradient(0, 0, 0, chart.height);
-          gradient.addColorStop(0, '#A3E4D7'); // Светло-зелёный
-          gradient.addColorStop(1, '#48C9B0'); // Тёмно-зелёный
+          gradient.addColorStop(0, '#A3E4D7');
+          gradient.addColorStop(1, '#48C9B0');
           return gradient;
         },
-        borderWidth: 0, // Убираем границы столбцов
+        borderWidth: 0,
       },
     ],
   };
+};
+
+// Функция для определения цвета KP-индекса (без изменений)
+const getKpColor = (kpIndex: number | null | undefined) => {
+  if (kpIndex == null) return '#000000';
+  if (kpIndex <= 2) return '#00FF00';
+  if (kpIndex <= 4) return '#FFFF00';
+  if (kpIndex <= 6) return '#FFA500';
+  return '#FF0000';
+};
+
+// Функция для рекомендаций на основе KP-индекса
+const getKpRecommendation = (kpIndex: number | null) => {
+  if (kpIndex === null) return 'Данные о KP-индексе отсутствуют.';
+  if (kpIndex <= 2) return 'Геомагнитная активность низкая. Отличный день для прогулок и активного отдыха! 🌞';
+  if (kpIndex <= 4) return 'Геомагнитная активность умеренная. Будьте внимательны к своему самочувствию. 😊';
+  if (kpIndex <= 6) return 'Геомагнитная активность повышена. Избегайте переутомления и пейте больше воды. 💧';
+  return 'Геомагнитная буря! Рекомендуем отдыхать и избегать стрессов. ⚡';
 };
 
 const MainPage: React.FC = () => {
@@ -144,7 +173,7 @@ const MainPage: React.FC = () => {
   const { username, loading: userLoading, error: userError } = useAppSelector(
     (state) => state.personalpageSlice
   );
-  const { healthRecords, loading: recordsLoading, error: recordsError } = useAppSelector(
+  const { healthRecords, kpIndexData, loading: recordsLoading, error: recordsError } = useAppSelector(
     (state) => state.mainSlice
   );
 
@@ -155,10 +184,9 @@ const MainPage: React.FC = () => {
       const userId = decoded.id;
       dispatch(getUserData(userId));
       dispatch(fetchHealthRecords(userId));
+      dispatch(fetchKpIndexForThreeDays());
     }
   }, [dispatch]);
-
-  console.log('healthRecords:', healthRecords);
 
   const metrics = calculateMetrics(healthRecords);
   const sickDaysData = calculateSickDaysByMonth(healthRecords);
@@ -168,6 +196,21 @@ const MainPage: React.FC = () => {
   if (userLoading || recordsLoading) return <div>Загрузка...</div>;
   if (userError) return <div className={styles.error}>Ошибка: {userError}</div>;
   if (recordsError) return <div className={styles.error}>Ошибка: {recordsError}</div>;
+
+  const kpChartData = {
+    labels: kpIndexData.map((entry) => {
+      const date = new Date(entry.date);
+      return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+    }),
+    datasets: [
+      {
+        label: 'KP-индекс',
+        data: kpIndexData.map((entry) => entry.kpIndex ?? 0),
+        backgroundColor: kpIndexData.map((entry) => getKpColor(entry.kpIndex)),
+        borderWidth: 0,
+      },
+    ],
+  };
 
   return (
     <div className={styles.pageContainer}>
@@ -201,53 +244,78 @@ const MainPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Гистограмма */}
-      <div className={styles.chartContainer}>
-        <h2 className={styles.chartTitle}>ДНИ БОЛЕЗНИ ЗА ГОД</h2>
-        <Bar
-          data={sickDaysData}
-          options={{
-            responsive: true,
-            plugins: {
-              legend: {
-                display: false, // Убираем легенду
-              },
-              title: {
-                display: false, // Убираем встроенный заголовок
-              },
-              tooltip: {
-                enabled: true, // Включаем всплывающие подсказки
-                callbacks: {
-                  label: (context) => `${context.parsed.y} дней болезни`,
-                },
-              },
-            },
-            scales: {
-              x: {
-                grid: {
-                  display: false, // Убираем сетку по оси X
-                },
-                ticks: {
-                  color: '#666', // Цвет подписей месяцев
-                  font: {
-                    size: 12,
+      {/* Контейнеры для гистограммы и KP-индекса */}
+      <div className={styles.chartAndKpContainer}>
+        <div className={styles.chartContainer}>
+          <h2 className={styles.chartTitle}>ДНИ БОЛЕЗНИ ЗА ГОД</h2>
+          <Bar
+            data={sickDaysData}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: { display: false },
+                title: { display: false },
+                tooltip: {
+                  enabled: true,
+                  callbacks: {
+                    label: (context) => `${context.parsed.y} дней болезни`,
                   },
                 },
-                border: {
-                  display: false, // Убираем ось X
+              },
+              scales: {
+                x: {
+                  grid: { display: false },
+                  ticks: { color: '#666', font: { size: 12 } },
+                  border: { display: false },
+                },
+                y: { display: false },
+              },
+              elements: { bar: { borderRadius: 4 } },
+            }}
+          />
+        </div>
+
+        <div className={styles.kpIndexContainer}>
+          <h3 className={styles.kpIndexTitle}>KP-индекс на 3 дня</h3>
+          <Bar
+            data={kpChartData}
+            options={{
+              indexAxis: 'y',
+              responsive: true,
+              plugins: {
+                legend: { display: false },
+                title: { display: false },
+                tooltip: {
+                  enabled: true,
+                  callbacks: {
+                    label: (context) => `KP: ${context.parsed.x}`,
+                  },
                 },
               },
-              y: {
-                display: false, // Полностью убираем ось Y
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  max: 9,
+                  ticks: { stepSize: 1, color: '#666', font: { size: 12 } },
+                  grid: { display: false },
+                  border: { display: false },
+                },
+                y: {
+                  grid: { display: false },
+                  ticks: { color: '#666', font: { size: 12 } },
+                  border: { display: false },
+                },
               },
-            },
-            elements: {
-              bar: {
-                borderRadius: 4, // Скругляем углы столбцов
-              },
-            },
-          }}
-        />
+              elements: { bar: { borderRadius: 4 } },
+            }}
+          />
+        </div>
+
+        {/* Рекомендации на основе KP-индекса */}
+      <div className={styles.kpRecommendation}>
+        <h3 className={styles.recommendationTitle}>Рекомендации на сегодня</h3>
+        <p className={styles.recommendationText}>{getKpRecommendation(kpIndexData[0]?.kpIndex)}</p>
+      </div>
       </div>
     </div>
   );

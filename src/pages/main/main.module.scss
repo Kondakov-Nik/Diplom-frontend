@@ -66,6 +66,15 @@
   margin: 0;
 }
 
+/* Контейнеры для гистограмм */
+.chartAndKpContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 20px;
+  gap: 20px;
+}
+
 .chartContainer {
   margin-top: 20px;
   width: 100%;
@@ -74,9 +83,8 @@
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-  
 }
+
 .chartTitle {
   font-size: 18px;
   font-weight: 600;
@@ -84,6 +92,64 @@
   text-transform: uppercase;
   margin-bottom: 8px;
 }
+
+.kpIndexContainer {
+  //margin-left: auto;  /* Уменьшаем правый отступ */
+  width: 300px;
+  height: 200px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; // Выравниваем содержимое сверху
+  align-items: stretch; // Растягиваем содержимое по ширине
+}
+
+.kpIndexTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  text-align: center; // Центрируем заголовок
+}
+
+
+/* Рекомендации на основе KP-индекса */
+.kpRecommendation {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.recommendationTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.recommendationText {
+  font-size: 16px;
+  font-weight: 400;
+  color: #555;
+  margin: 0;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .kpRecommendation {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
 
 
 /* Футер */
@@ -120,3 +186,24 @@
   text-align: center;
   margin: 20px 0;
 }
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .chartAndKpContainer {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .chartContainer {
+    max-width: 100%;
+  }
+
+  .kpIndexContainer {
+    width: 100%;
+    max-width: 400px;
+    height: 250px; // Увеличиваем высоту для лучшего отображения на мобильных
+    margin-top: 20px;
+  }
+}
+
+

@@ -1,4 +1,6 @@
-import { FaUser, FaCalendar, FaFileAlt } from 'react-icons/fa';
+import { FaUser, FaCalendar, FaFileAlt} from 'react-icons/fa';
+import { IoHome } from "react-icons/io5";
+
 import { Link, useLocation } from 'react-router-dom';
 import s from './header.module.scss';
 
@@ -14,12 +16,16 @@ const Header: React.FC = () => {
         {/* Показываем кнопки, если не на главной странице */}
         {!isHomePageOrLogin && (
           <div className={s.buttons}>
+            <Link to="/home" className={s.buttonHeader}>
+              <IoHome size={28} className={s.iconShift} /> ЛЕНТА
+            </Link>
             <Link to="/calendar" className={s.buttonHeader}>
               <FaCalendar size={26} className={s.iconShift} /> КАЛЕНДАРЬ
             </Link>
             <Link to="/report" className={s.buttonHeader}>
               <FaFileAlt size={29} className={s.iconShift} /> ОТЧЕТЫ
             </Link>
+            
           </div>
         )}
 
