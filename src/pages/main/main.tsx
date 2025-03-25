@@ -5,10 +5,14 @@ import { fetchHealthRecords } from './mainSlice';
 import styles from './main.module.scss';
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
+import { Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 
-// Функция для вычисления метрик
+// Регистрация компонентов Chart.js
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+// Функция для вычисления метрик (без изменений)
 const calculateMetrics = (healthRecords: any[]) => {
-  // Проверяем, что healthRecords - это массив
   if (!Array.isArray(healthRecords)) {
     console.warn('healthRecords is not an array:', healthRecords);
     return {
@@ -22,7 +26,6 @@ const calculateMetrics = (healthRecords: any[]) => {
   const today = new Date();
   const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
 
-  // 1. Дней подряд без симптомов
   const symptomDates = healthRecords
     .filter(record => record.symptomId !== null)
     .map(record => new Date(record.recordDate))
@@ -37,22 +40,19 @@ const calculateMetrics = (healthRecords: any[]) => {
   } else {
     consecutiveDaysWithoutSymptoms = Math.floor(
       (today.getTime() - oneMonthAgo.getTime()) / (1000 * 60 * 60 * 24)
-    ); // Если симптомов нет, считаем от месяца назад
+    );
   }
 
-  // 2. Симптомы за месяц
   const symptomsThisMonth = healthRecords.filter(record => {
     const recordDate = new Date(record.recordDate);
     return record.symptomId !== null && recordDate >= oneMonthAgo;
   }).length;
 
-  // 3. Лекарства за месяц
   const medicationsThisMonth = healthRecords.filter(record => {
     const recordDate = new Date(record.recordDate);
     return record.medicationId !== null && recordDate >= oneMonthAgo;
   }).length;
 
-  // 4. Самый частый симптом за месяц
   const symptomFrequency: { [key: string]: number } = {};
   healthRecords.forEach(record => {
     const recordDate = new Date(record.recordDate);
@@ -76,6 +76,69 @@ const calculateMetrics = (healthRecords: any[]) => {
   };
 };
 
+// Функция для вычисления дней болезни по месяцам (с небольшими изменениями для стилей)
+const calculateSickDaysByMonth = (healthRecords: any[]) => {
+  if (!Array.isArray(healthRecords)) {
+    return { labels: [], datasets: [] };
+  }
+
+  const today = new Date();
+  const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+
+  // Фильтруем записи за последний год с симптомами
+  const sickRecords = healthRecords.filter(record => {
+    const recordDate = new Date(record.recordDate);
+    return record.symptomId !== null && recordDate >= oneYearAgo && recordDate <= today;
+  });
+
+  // Группируем уникальные дни болезни по месяцам
+  const sickDaysByMonth: { [key: string]: Set<string> } = {};
+  sickRecords.forEach(record => {
+    const date = new Date(record.recordDate);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    if (!sickDaysByMonth[monthKey]) {
+      sickDaysByMonth[monthKey] = new Set();
+    }
+    sickDaysByMonth[monthKey].add(date.toISOString().split('T')[0]);
+  });
+
+  // Генерируем список месяцев за последний год
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    months.push(monthKey);
+  }
+
+  // Подготавливаем данные для гистограммы
+  const labels = months.map(month => {
+    const [year, monthNum] = month.split('-');
+    const monthNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+    return `${monthNames[parseInt(monthNum) - 1]} ${year.slice(2)}`; // Формат: "Янв 23"
+  });
+
+  const data = months.map(month => (sickDaysByMonth[month] ? sickDaysByMonth[month].size : 0));
+
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Дни болезни',
+        data,
+        backgroundColor: (context: any) => {
+          const chart = context.chart;
+          const { ctx } = chart;
+          const gradient = ctx.createLinearGradient(0, 0, 0, chart.height);
+          gradient.addColorStop(0, '#A3E4D7'); // Светло-зелёный
+          gradient.addColorStop(1, '#48C9B0'); // Тёмно-зелёный
+          return gradient;
+        },
+        borderWidth: 0, // Убираем границы столбцов
+      },
+    ],
+  };
+};
+
 const MainPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { username, loading: userLoading, error: userError } = useAppSelector(
@@ -85,25 +148,21 @@ const MainPage: React.FC = () => {
     (state) => state.mainSlice
   );
 
-  // Загружаем данные пользователя и записи здоровья при монтировании
   useEffect(() => {
     const token = Cookies.get('authToken');
     if (token) {
       const decoded: any = jwtDecode(token);
       const userId = decoded.id;
-
-      dispatch(getUserData(userId)); // Получаем данные пользователя
-      dispatch(fetchHealthRecords(userId)); // Получаем записи здоровья
+      dispatch(getUserData(userId));
+      dispatch(fetchHealthRecords(userId));
     }
   }, [dispatch]);
 
-  // Логирование для отладки
   console.log('healthRecords:', healthRecords);
 
-  // Вычисляем метрики на основе записей здоровья
   const metrics = calculateMetrics(healthRecords);
+  const sickDaysData = calculateSickDaysByMonth(healthRecords);
 
-  // Извлекаем только первое слово из username (имя)
   const firstName = username ? username.split(' ')[0] : 'Пользователь';
 
   if (userLoading || recordsLoading) return <div>Загрузка...</div>;
@@ -120,7 +179,7 @@ const MainPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Новые цветные карточки с метриками */}
+      {/* Метрики */}
       <div className={styles.topMetrics}>
         <div className={`${styles.topMetricCard} ${styles.consecutiveDaysWithoutSymptoms}`}>
           <h3 className={styles.topMetricLabel}>Дней подряд без симптомов</h3>
@@ -140,6 +199,55 @@ const MainPage: React.FC = () => {
             {metrics.mostFrequentSymptom.name} ({metrics.mostFrequentSymptom.count})
           </p>
         </div>
+      </div>
+
+      {/* Гистограмма */}
+      <div className={styles.chartContainer}>
+        <h2 className={styles.chartTitle}>ДНИ БОЛЕЗНИ ЗА ГОД</h2>
+        <Bar
+          data={sickDaysData}
+          options={{
+            responsive: true,
+            plugins: {
+              legend: {
+                display: false, // Убираем легенду
+              },
+              title: {
+                display: false, // Убираем встроенный заголовок
+              },
+              tooltip: {
+                enabled: true, // Включаем всплывающие подсказки
+                callbacks: {
+                  label: (context) => `${context.parsed.y} дней болезни`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                grid: {
+                  display: false, // Убираем сетку по оси X
+                },
+                ticks: {
+                  color: '#666', // Цвет подписей месяцев
+                  font: {
+                    size: 12,
+                  },
+                },
+                border: {
+                  display: false, // Убираем ось X
+                },
+              },
+              y: {
+                display: false, // Полностью убираем ось Y
+              },
+            },
+            elements: {
+              bar: {
+                borderRadius: 4, // Скругляем углы столбцов
+              },
+            },
+          }}
+        />
       </div>
     </div>
   );

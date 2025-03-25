@@ -66,6 +66,25 @@
   margin: 0;
 }
 
+.chartContainer {
+  margin-top: 20px;
+  width: 100%;
+  max-width: 670px;
+  padding: 8px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  
+}
+.chartTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
 
 /* Футер */
 .footerContainer {
