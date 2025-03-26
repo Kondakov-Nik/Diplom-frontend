@@ -1,85 +1,72 @@
 .containerReport {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 20px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-  
-  .zagolovokReport {
-    font-size: 38px;
-    font-weight: bold;
-    color: #333;
-  }
-  
-  .inputReportStartDate,
-  .inputReportEndDate,
-  .inputReportType {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 15px;
-  }
-  
-  .inputReportStartDate label,
-  .inputReportEndDate label,
-  .inputReportType label {
-    font-size: 1.2rem;
-    font-weight: 460;
-    color: #000000;
-  }
-  
-  .inputReportStartDate input,
-  .inputReportEndDate input,
-  .inputReportType select {
-    padding: 8px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    outline: none;
-  }
-  
-  .inputReportStartDate input:focus,
-  .inputReportEndDate input:focus,
-  .inputReportType select:focus {
-    border-color: #0f4580;
-  }
-  
-  .buttonCreateReport {
-    margin-right: 15px;  /* Уменьшаем правый отступ */
-    margin-left: 15px;   /* Уменьшаем левый отступ */
-    padding: 8px 8px;  /* Уменьшаем отступы внутри кнопки */
-    font-size: 20px;    /* Уменьшаем размер шрифта */
-    font-weight: 500;
-    background-color: #7eb2b8; /* Основной цвет для кнопки */
-    color: #fff;
-    border-radius: 10px;  /* Уменьшаем радиус скругления */
-    border: none;
-    cursor: pointer;
-    //display: inline-block;
-    text-align: center;
-    //box-sizing: border-box;
-  }
-  
-  
-  .buttonCreateReport:disabled {
-    background-color: #ccc;
-  }
-  
-  .buttonCreateReport:hover {
-    background-color: #4768a4;
-  }
-  
-  .loadingText {
-    font-size: 14px;
-    color: #007BFF;
-  }
-  
-  .errorText {
-    font-size: 14px;
-    color: red;
-  }
-  
+  display: flex;
+  justify-content: space-between;
+}
+
+.leftPanel {
+  width: 30%;
+  padding: 20px;
+  border-right: 1px solid #ccc;
+}
+
+.rightPanel {
+  width: 70%;
+  padding: 20px;
+}
+
+.zagolovokReport {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.inputReportStartDate, .inputReportEndDate, .inputReportType {
+  margin-bottom: 15px;
+}
+
+.buttonCreateReport {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.loadingText {
+  color: blue;
+}
+
+.errorText {
+  color: red;
+}
+
+.zagolovokReportsList {
+  font-size: 20px;
+  margin-top: 30px;
+}
+
+.selectedReport {
+  background-color: #f0f0f0;
+}
+
+.reportViewer {
+  width: 100%;
+  height: 100vh;
+  border: none;
+}
+
+
+.reportsList {
+  list-style: none;
+  padding: 0;
+  max-height: 340px; /* Примерная высота для 6 элементов, каждый ~40px */
+  overflow-y: scroll; /* Заменяем auto на scroll для постоянного отображения */
+  border: 1px solid #ccc; /* Опционально: для наглядности */
+}
+
+.reportsList li {
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between; /* Для размещения текста и иконки */
+  align-items: center;
+}

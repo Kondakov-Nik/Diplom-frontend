@@ -1,81 +1,82 @@
 .headerContainer {
   display: flex;
   background-color: #7eb2b8;
-  width: 100%; /* Это гарантирует, что контейнер займет всю ширину */
-  padding: 10px 20px; /* Уменьшаем отступы сверху и снизу */
-  align-items: center; /* Центрируем элементы по вертикали */
+  width: 100%;
+  padding: 10px 20px;
+  align-items: center;
 }
 
 .header {
   display: flex;
-  align-items: center; /* Вертикальное выравнивание по центру */
-  width: 100%; /* Это растянет header на всю ширину */
-  max-width: 1200px; /* Ограничиваем максимальную ширину для удобства */
-  margin: 0 auto; /* Центрируем содержимое хедера */
-
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .zagolovok {
   color: #edf1c0;
   margin-left: 18px;
-  font-size: 40px; /* Уменьшаем размер шрифта */
-  margin-bottom: 20px; /* Уменьшаем нижний отступ */
+  font-size: 40px;
+  margin-bottom: 20px;
 }
 
 .buttons {
   display: flex;
-  gap: 10px; /* Отступы между кнопками */
-  margin-left: auto; /* Это сдвигает блок с кнопками вправо */
-
+  gap: 10px;
+  margin-left: auto;
 }
 
 .buttonHeader {
-  text-decoration: none; /* Убираем подчеркивание у ссылок */
-  color: #edf1c0; /* Цвет текста */
+  text-decoration: none;
+  color: #edf1c0;
   font-size: 25px;
-  padding: 32px 35px; /* Паддинги для кнопок */
-  border-radius: 5%; /* Делаем область нажатия круглой, если хотите */
-  background-color: transparent; /* Кнопки сливаются с фоном */
-  border: none; /* Убираем обводку */
+  padding: 32px 35px;
+  border-radius: 5%;
+  background-color: transparent;
+  border: none;
   cursor: pointer;
-  align-items: center; /* Центрируем иконку с текстом */
-  transition: color 0.3s ease, background-color 0.3s ease; /* Плавный переход при наведении */
+  align-items: center;
+  transition: color 0.3s ease, background-color 0.3s ease;
+  display: flex; /* Для центрирования иконки и текста */
 }
 
 .buttonHeader:hover {
-  color: #fff; /* Цвет текста при наведении */
-  background-color: rgba(255, 255, 255, 0.2); /* Легкий фон при наведении */
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .buttonHeader:focus {
-  outline: none; /* Убираем обводку при фокусе */
+  outline: none;
+}
+
+.dropdown {
+  position: relative; /* Для позиционирования меню */
 }
 
 .icon {
   color: #edf1c0;
-  padding: 32px; /* Увеличиваем паддинги для создания большей области нажатия */
+  padding: 32px;
   cursor: pointer;
-  transition: color 0.3s ease, background-color 0.3s ease; /* Плавный переход */
-
-  /* Для более комфортного клика */
+  transition: color 0.3s ease, background-color 0.3s ease;
   display: flex;
   justify-content: center;
-  align-items: center; /* Центрируем иконку внутри области */
-  border-radius: 5%; /* Делаем область нажатия круглой, если хотите */
+  align-items: center;
+  border-radius: 5%;
 }
 
 .icon:hover {
-  color: #fff; /* Цвет иконки при наведении */
-  background-color: rgba(255, 255, 255, 0.2); /* Легкий фон при наведении */
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .icon:focus {
-  outline: none; /* Убираем стандартную обводку при фокусе */
-  background-color: rgba(255, 255, 255, 0.3); /* Увеличиваем интенсивность фона при фокусе */
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Класс для сдвига иконок вниз */
 .iconShift {
-  margin-bottom: -2px; /* Сдвигаем иконку немного вниз */
+  margin-bottom: -2px;
   margin-right: auto;
 }
