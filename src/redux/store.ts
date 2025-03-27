@@ -5,6 +5,8 @@ import reportSlice from '../pages/report/reportSlice';
 import personalpageSlice from '../pages/personalpage/personalpageSlice';
 import calendarSlice from '../pages/calendar/calendarSlice';
 import mainSlice from '../pages/main/mainSlice';
+import aiSlice from '../pages/ai/aiSlice';
+
 
 
 const rootReducers = combineReducers({
@@ -12,7 +14,8 @@ const rootReducers = combineReducers({
   authSlice,
   personalpageSlice,
   calendarSlice,
-  mainSlice
+  mainSlice,
+  aiSlice
 })
 
 

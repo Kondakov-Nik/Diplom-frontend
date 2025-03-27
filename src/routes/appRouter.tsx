@@ -9,6 +9,8 @@ import Header from "../layouts/header/headerComponent";
 import Footer from "../layouts/footer/footerComponent";
 import AuthForm from "../features/authForm";
 import Main from "../pages/main/main";
+import Ai from "../pages/ai/ai";
+
 
 const AppRouter: React.FC = () => {
   return (
@@ -22,6 +24,7 @@ const AppRouter: React.FC = () => {
         <Route path="/Personalpage" element={<Personalpage/>} />
         <Route path="/Report" element={<Report />} />
         <Route path="/Home" element={<Main />} />
+        <Route path="/Ai-helper" element={<Ai />} />
 {/*         <Route path="*" element={<NotFound />} />
  */}      </Routes>
       </div>

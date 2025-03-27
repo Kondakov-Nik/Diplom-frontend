@@ -84,7 +84,7 @@ const Header: React.FC = () => {
                 <MenuItem
                   onClick={handleClose}
                   component={Link}
-                  to="/ai-assistant"
+                  to="/ai-helper"
                   sx={{
                     fontSize: '18px',
                     padding: '12px 20px',
