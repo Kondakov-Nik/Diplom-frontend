@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/hooks';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -8,7 +8,7 @@ import { DateSelectArg, EventClickArg, EventApi, DatesSetArg } from '@fullcalend
 import Modal from 'react-modal';
 import ruLocale from '@fullcalendar/core/locales/ru';
 import Select, { MultiValue, ActionMeta } from 'react-select';
-import { getAllHealthRecords, getAllSymptoms, getAllMedications, createSymptomRecord, createMedicationRecord, updateRecord, createCustomSymptom, createCustomMedication, getHistoricalKpData, getForecastKpData, CalendarState, Symptom, Medication } from './calendarSlice';
+import { getAllHealthRecords, getAllSymptoms, getAllMedications, createSymptomRecord, createMedicationRecord, updateRecord, createCustomSymptom, createCustomMedication, getHistoricalKpData, getForecastKpData, deleteRecord, CalendarState, Symptom, Medication } from './calendarSlice';
 import { createEventId } from './event-utils';
 import './calendar.module.scss';
 import Cookies from 'js-cookie';
@@ -23,11 +23,12 @@ interface Option {
 
 const Calendar: React.FC = () => {
   const dispatch = useAppDispatch();
-  // Указываем тип состояния для useAppSelector
   const events = useAppSelector((state: { calendarSlice: CalendarState }) => state.calendarSlice.events);
   const symptoms = useAppSelector((state: { calendarSlice: CalendarState }) => state.calendarSlice.symptoms);
   const medications = useAppSelector((state: { calendarSlice: CalendarState }) => state.calendarSlice.medications);
   const kpData = useAppSelector((state: { calendarSlice: CalendarState }) => state.calendarSlice.kpData);
+
+  const calendarRef = useRef<FullCalendar>(null); // Добавляем ref для FullCalendar
 
   const [addingType, setAddingType] = React.useState<'symptom' | 'medication' | null>(null);
   const [weekendsVisible] = React.useState(true);
@@ -56,7 +57,7 @@ const Calendar: React.FC = () => {
     const now = new Date();
     return now.toTimeString().slice(0, 5);
   });
-  const [selectedEvent, setSelectedEvent] = React.useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = React.useState<EventApi | null>(null); // Изменяем тип на EventApi
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   const [filterType, setFilterType] = useState({ symptoms: false, medications: false });
@@ -215,18 +216,14 @@ const Calendar: React.FC = () => {
     const selectedDateStr = selectInfo.startStr.split('T')[0];
     const selectedDateObj = new Date(selectedDateStr);
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Сбрасываем время для корректного сравнения
-  
-    // Находим KP-индекс для выбранной даты в kpData
+    today.setHours(0, 0, 0, 0);
+
     const kpEntry = kpData.find((entry) => entry.date === selectedDateStr);
     const kpIndex = kpEntry ? kpEntry.kpIndex : null;
   
-    // Устанавливаем KP-индекс в зависимости от типа даты
     if (selectedDateObj < today) {
-      // Прошедшая дата: отображаем только если есть данные в kpData (исторические)
       setSelectedKpIndex(kpIndex);
     } else if (selectedDateObj >= today) {
-      // Сегодняшняя или будущая дата: отображаем только если есть данные в kpData (прогноз)
       setSelectedKpIndex(kpIndex);
     }
   
@@ -411,10 +408,34 @@ const Calendar: React.FC = () => {
 
   const handleEditEvent = () => {
     setIsEventModalOpen(false);
-    if (selectedEvent.extendedProps.type === 'symptom') {
+    if (selectedEvent?.extendedProps.type === 'symptom') {
       setIsUpdateSymptomEventModalOpen(true);
-    } else if (selectedEvent.extendedProps.type === 'medication') {
+    } else if (selectedEvent?.extendedProps.type === 'medication') {
       setIsUpdateMedicalEventModalOpen(true);
+    }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (selectedEvent && userId) {
+      try {
+        // Удаляем событие из базы данных через API
+        await dispatch(deleteRecord(selectedEvent.id)).unwrap();
+
+        // Удаляем событие из FullCalendar
+        const calendarApi = calendarRef.current?.getApi();
+        const eventToRemove = calendarApi?.getEventById(selectedEvent.id);
+        if (eventToRemove) {
+          eventToRemove.remove(); // Удаляем событие из календаря
+        }
+
+        // Обновляем состояние filteredEvents
+        setFilteredEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEvent.id));
+
+        // Закрываем модальное окно
+        closeEventModal();
+      } catch (error) {
+        console.error('Ошибка при удалении события:', error);
+      }
     }
   };
 
@@ -481,16 +502,17 @@ const Calendar: React.FC = () => {
 
   const getKpColor = (kpIndex: number | null) => {
     if (kpIndex === null) return '#000000';
-    if (kpIndex <= 2) return '#FF0000'; // Зеленый
-    if (kpIndex <= 4) return '#FF0000'; // Желтый
-    if (kpIndex <= 6) return '#FF0000'; // Оранжевый
-    return '#FF0000'; // Красный
+    if (kpIndex <= 2) return '#FF0000';
+    if (kpIndex <= 4) return '#FF0000';
+    if (kpIndex <= 6) return '#FF0000';
+    return '#FF0000';
   };
 
   return (
     <div className="demo-app">
       <div className="demo-app-main">
         <FullCalendar
+          ref={calendarRef} // Привязываем ref к FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           headerToolbar={{
             left: 'prev,next today',
@@ -619,61 +641,61 @@ const Calendar: React.FC = () => {
       </div>
 
       <Modal
-      isOpen={isModalOpen}
-      onRequestClose={closeModal}
-      contentLabel="Select Type Modal"
-      style={{
-        content: {
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          right: 'auto',
-          bottom: 'auto',
-          transform: 'translate(-50%, -50%)',
-          width: '400px',
-          maxWidth: '90%',
-          padding: '20px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-          backgroundColor: 'white',
-        },
-        overlay: {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 9999,
-        },
-      }}
-    >
-      <h2>Я хочу отметить:</h2>
-      {selectedDate && (
-        <p>
-          <strong>Дата:</strong> {new Date(selectedDate.startStr).toLocaleDateString('ru-RU')}
-          <br />
-          <strong>KP-индекс:</strong>{' '}
-          {selectedKpIndex !== null ? (
-            <span style={{ color: getKpColor(selectedKpIndex) }}>
-              {selectedKpIndex}
-            </span>
-          ) : (
-            <span>Нет данных</span>
-          )}
-        </p>
-      )}
-      <div>
-        <button onClick={() => handleTypeSelect('symptom')}>Симптом</button>
-        <button onClick={() => handleTypeSelect('medication')}>Лекарство</button>
-      </div>
-      <div>
-        <button type="button" onClick={closeModal}>Закрыть</button>
-      </div>
-    </Modal>
+        isOpen={isModalOpen}
+        onRequestClose={closeModal}
+        contentLabel="Select Type Modal"
+        style={{
+          content: {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            right: 'auto',
+            bottom: 'auto',
+            transform: 'translate(-50%, -50%)',
+            width: '400px',
+            maxWidth: '90%',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+            backgroundColor: 'white',
+          },
+          overlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+          },
+        }}
+      >
+        <h2>Я хочу отметить:</h2>
+        {selectedDate && (
+          <p>
+            <strong>Дата:</strong> {new Date(selectedDate.startStr).toLocaleDateString('ru-RU')}
+            <br />
+            <strong>KP-индекс:</strong>{' '}
+            {selectedKpIndex !== null ? (
+              <span style={{ color: getKpColor(selectedKpIndex) }}>
+                {selectedKpIndex}
+              </span>
+            ) : (
+              <span>Нет данных</span>
+            )}
+          </p>
+        )}
+        <div>
+          <button onClick={() => handleTypeSelect('symptom')}>Симптом</button>
+          <button onClick={() => handleTypeSelect('medication')}>Лекарство</button>
+        </div>
+        <div>
+          <button type="button" onClick={closeModal}>Закрыть</button>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isSymptomModalOpen}
@@ -932,9 +954,49 @@ const Calendar: React.FC = () => {
             )}
           </div>
         )}
-        <div>
-          <button type="button" onClick={closeEventModal}>Закрыть</button>
-          <button type="button" onClick={handleEditEvent}>Изменить</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+          <button
+            type="button"
+            onClick={closeEventModal}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#6c757d',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Закрыть
+          </button>
+          <button
+            type="button"
+            onClick={handleEditEvent}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#007bff',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Изменить
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteEvent}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#dc3545',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Удалить
+          </button>
         </div>
       </Modal>
 

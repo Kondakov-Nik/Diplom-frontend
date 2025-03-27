@@ -54,7 +54,6 @@ interface UpdateRecord {
 
 // Интерфейс состояния
 export interface CalendarState {
-  // Экспортируем интерфейс для использования в других файлах
   events: any[];
   symptoms: Symptom[];
   medications: Medication[];
@@ -187,6 +186,17 @@ export const updateRecord = createAsyncThunk(
   }
 );
 
+// Thunk для удаления записи
+export const deleteRecord = createAsyncThunk(
+  'calendar/deleteRecord',
+  async (id: string) => {
+    const response = await axios.delete(`http://localhost:5001/api/healthRecords/${id}`, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    return { id, message: response.data.message };
+  }
+);
+
 const calendarSlice = createSlice({
   name: 'calendar',
   initialState,
@@ -197,7 +207,6 @@ const calendarSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-    
       .addCase(getAllHealthRecords.fulfilled, (state, action) => {
         state.loading = false;
         state.events = action.payload.map((record: any) => {
@@ -259,7 +268,6 @@ const calendarSlice = createSlice({
       })
       .addCase(getHistoricalKpData.fulfilled, (state, action) => {
         state.loading = false;
-        // Объединяем исторические данные с существующими, избегая дубликатов
         state.kpData = [
           ...action.payload,
           ...state.kpData.filter((d) => !action.payload.some((h) => h.date === d.date)),
@@ -275,7 +283,6 @@ const calendarSlice = createSlice({
       })
       .addCase(getForecastKpData.fulfilled, (state, action) => {
         state.loading = false;
-        // Объединяем прогнозные данные с существующими, избегая дубликатов
         state.kpData = [
           ...state.kpData.filter((d) => !action.payload.some((f) => f.date === d.date)),
           ...action.payload,
@@ -353,10 +360,24 @@ const calendarSlice = createSlice({
       .addCase(createCustomMedication.fulfilled, (state, action) => {
         state.loading = false;
         state.medications.push(action.payload);
+        state.error = null;
       })
       .addCase(createCustomMedication.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Не удалось создать лекарство';
+      })
+      // Обработка удаления записи
+      .addCase(deleteRecord.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteRecord.fulfilled, (state, action) => {
+        state.loading = false;
+        state.events = state.events.filter((event) => event.id !== action.payload.id);
+      })
+      .addCase(deleteRecord.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Не удалось удалить запись';
       });
   },
 });
