@@ -35,7 +35,7 @@ const analysisPrompts = [
     text: 'Общий анализ за месяц',
     startDaysAgo: 30,
     prompt: (symptomsText: string, medicationsText: string) => ({
-      displayText: `Общий анализ за месяц.\nУ пользователя за период наблюдения были зафиксированы следующие симптомы: ${symptomsText}. За тот же период он принимал следующие лекарства: ${medicationsText}.`,
+      displayText: `Общий анализ за месяц.\nУ вас за период наблюдения были зафиксированы следующие симптомы: ${symptomsText}. За тот же период вы принимали следующие лекарства: ${medicationsText}.`,
       fullPrompt: `Ты врач с высшей категорией. У пользователя за период наблюдения были зафиксированы следующие симптомы: ${symptomsText}.
       За тот же период он принимал следующие лекарства: ${medicationsText}. Проанализируй эти данные и дай развернутые рекомендации по лечению. Укажи:
       1. Объясни, что могут значить симптомы.
@@ -50,7 +50,7 @@ const analysisPrompts = [
     text: 'Общий анализ за две недели',
     startDaysAgo: 14,
     prompt: (symptomsText: string, medicationsText: string) => ({
-      displayText: `Общий анализ за две недели.\nУ пользователя за последние две недели были зафиксированы следующие симптомы: ${symptomsText}. За тот же период он принимал следующие лекарства: ${medicationsText}.`,
+      displayText: `Общий анализ за две недели.\nУ вас за последние две недели были зафиксированы следующие симптомы: ${symptomsText}. За тот же период вы принимали следующие лекарства: ${medicationsText}.`,
       fullPrompt: `Ты врач с высшей категорией. У пользователя за последние две недели были зафиксированы следующие симптомы: ${symptomsText}.
       За тот же период он принимал следующие лекарства: ${medicationsText}. Проанализируй эти данные и дай рекомендации.`,
     }),
@@ -59,7 +59,7 @@ const analysisPrompts = [
     text: 'Общий анализ за неделю',
     startDaysAgo: 7,
     prompt: (symptomsText: string, medicationsText: string) => ({
-      displayText: `Общий анализ за неделю.\nУ пользователя за последнюю неделю были зафиксированы следующие симптомы: ${symptomsText}. За тот же период он принимал следующие лекарства: ${medicationsText}.`,
+      displayText: `Общий анализ за неделю.\nУ вас за последнюю неделю были зафиксированы следующие симптомы: ${symptomsText}. За тот же период вы принимали следующие лекарства: ${medicationsText}.`,
       fullPrompt: `Ты врач с высшей категорией. У пользователя за последнюю неделю были зафиксированы следующие симптомы: ${symptomsText}.
       За тот же период он принимал следующие лекарства: ${medicationsText}. Проанализируй эти данные и дай рекомендации.`,
     }),
@@ -136,13 +136,12 @@ const preventionPrompts = [
     }
   
     const [message, setMessage] = useState('');
-    const [isInputEnabled, setIsInputEnabled] = useState(false); // Изначально false
+    const [isInputEnabled, setIsInputEnabled] = useState(false);
   
-    // Добавляем useEffect для отслеживания изменений conversation
     useEffect(() => {
       const hasAssistantResponse = conversation.some((msg: Message) => msg.role === 'assistant');
       setIsInputEnabled(hasAssistantResponse);
-    }, [conversation]); // Зависимость — conversation
+    }, [conversation]);
   
     if (!userId) {
       return <div className={styles.chatContainer}>Пожалуйста, авторизуйтесь, чтобы использовать чат с ИИ.</div>;
@@ -171,14 +170,23 @@ const preventionPrompts = [
   
       if (result.meta.requestStatus === 'fulfilled') {
         const records = result.payload as any[];
-        if (records.length === 0) {
-          const errorMessage: Message = { role: 'user', content: 'Нет данных за указанный период.' };
+  
+        const { symptomsText, medicationsText } = calculateHealthSummary(records);
+  
+        if (symptomsText === 'отсутствуют' && medicationsText === 'отсутствуют') {
+          let periodText = '';
+          if (startDaysAgo === 7) periodText = 'неделю';
+          else if (startDaysAgo === 14) periodText = 'две недели';
+          else if (startDaysAgo === 30) periodText = 'месяц';
+  
+          const errorMessage: Message = {
+            role: 'user',
+            content: `У вас недостаточно симптомов или лекарств за ${periodText}, чтобы составить анализ вашего здоровья за ${periodText}.`,
+          };
           dispatch(addMessage(errorMessage));
-          dispatch(sendPrompt([{ role: 'user' as const, content: 'Нет данных за указанный период.' }]));
           return;
         }
   
-        const { symptomsText, medicationsText } = calculateHealthSummary(records);
         const { displayText, fullPrompt } = promptFn(symptomsText, medicationsText);
         const userMessage: Message = { role: 'user', content: displayText };
         dispatch(addMessage(userMessage));
@@ -254,55 +262,61 @@ const preventionPrompts = [
         </div>
   
         <div className={styles.chatArea}>
-          <div className={styles.headerContainer}>
-            <h2 className={styles.header}>Чат с ИИ</h2>
-          </div>
-  
-          <div className={styles.conversationContainer}>
-            <div className={styles.messages}>
-              {conversation.map((msg: Message, index: number) => (
-                <div
-                  key={index}
-                  className={`${styles.message} ${msg.role === 'user' ? styles.userMessage : styles.aiMessage}`}
-                >
-                  {msg.role === 'user' ? (
-                    <>
-                      <span className={styles.messageContent}>{msg.content}</span>
-                      <span className={styles.userIcon}>👤</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className={styles.botIcon}>🤖</span>
-                      <span className={styles.messageContent}>{msg.content}</span>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className={styles.inputContainer}>
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Введите ваш вопрос..."
-                className={styles.input}
-                disabled={loading || !isInputEnabled}
-              />
-              <button
-                onClick={handleSendMessage}
-                className={styles.sendButton}
-                disabled={loading || !isInputEnabled}
-              >
-                Отправить
-              </button>
-            </div>
-          </div>
-  
-          {loading && <p className={styles.loading}>Загрузка...</p>}
-          {error && <p className={styles.error}>{error}</p>}
+  <div className={styles.headerContainer}>
+    <h2 className={styles.header}>Чат с ИИ</h2>
+    <div className={styles.divider}></div>
+    <p className={styles.disclaimer}>
+      Медицинская информация предоставляется в рекомендательном формате, точный диагноз может поставить только врач.
+    </p>
+  </div>
+
+  <div className={styles.conversationContainer}>
+    <div className={styles.messages}>
+      {conversation.map((msg: Message, index: number) => (
+        <div
+          key={index}
+          className={`${styles.message} ${msg.role === 'user' ? styles.userMessage : styles.aiMessage}`}
+        >
+          {msg.role === 'user' ? (
+            <>
+              <span className={styles.messageContent}>{msg.content}</span>
+              <span className={styles.userIcon}>👤</span>
+            </>
+          ) : (
+            <>
+              <span className={styles.botIcon}>🤖</span>
+              <span className={styles.messageContent}>{msg.content}</span>
+            </>
+          )}
         </div>
-      </div>
+      ))}
+    </div>
+    <div className={styles.inputContainer}>
+      <input
+        type="text"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        onKeyPress={handleKeyPress}
+        placeholder="Введите ваш вопрос..."
+        className={styles.input}
+        disabled={loading || !isInputEnabled}
+      />
+      <button
+        onClick={handleSendMessage}
+        className={styles.sendButton}
+        disabled={loading || !isInputEnabled}
+      >
+        Отправить
+      </button>
+    </div>
+  </div>
+
+  <div className={styles.footer}>
+    {loading && <p className={styles.loading}>Загрузка...</p>}
+    {error && <p className={styles.error}>{error}</p>}
+  </div>
+</div>
+</div>
     );
   };
   

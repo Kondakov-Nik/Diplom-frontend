@@ -43,6 +43,7 @@
     "react-select": "^5.10.1",
     "redux-toolkit": "^1.1.2",
     "scss": "^0.2.4",
+    "styled-components": "^6.1.16",
     "yup": "^1.6.1"
   },
   "devDependencies": {

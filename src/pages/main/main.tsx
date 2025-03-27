@@ -216,7 +216,7 @@ const MainPage: React.FC = () => {
     <div className={styles.pageContainer}>
       {/* Приветственная надпись */}
       <div className={styles.welcomeSection}>
-        <h1 className={styles.welcomeText}>С возвращением, {firstName} 👋</h1>
+        <h1 className={styles.welcomeText}>С возвращением, {firstName}!</h1>
         <p className={styles.welcomeSubtitle}>
           Отслеживайте своё здоровье и получайте полезные рекомендации
         </p>
