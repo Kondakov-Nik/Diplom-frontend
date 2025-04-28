@@ -34,7 +34,7 @@ export const fetchHealthData = createAsyncThunk(
       const response = await axios.post('http://localhost:5001/api/ai/health-data', { userId, startDate, endDate });
       return response.data.records;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Ошибка при получении данных о здоровье');
+      return rejectWithValue(error.response?.data?.message || 'Ошибка при получении данных о здоровье');  
     }
   }
 );

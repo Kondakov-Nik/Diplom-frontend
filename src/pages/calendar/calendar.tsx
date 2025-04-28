@@ -641,61 +641,176 @@ const Calendar: React.FC = () => {
       </div>
 
       <Modal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        contentLabel="Select Type Modal"
+      isOpen={isModalOpen}
+      onRequestClose={closeModal}
+      contentLabel="Select Type Modal"
+      style={{
+        content: {
+          backgroundColor: '#fff',
+          borderRadius: '12px',
+          boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+          padding: '20px',
+          width: '400px',
+          maxWidth: '90%',
+          minHeight: 'auto', // Подстраиваем высоту под содержимое
+          textAlign: 'center',
+          // Убираем position: absolute и связанные свойства
+          position: 'static', // По умолчанию, чтобы flex в overlay работал
+        },
+        overlay: {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+        },
+      }}
+    >
+      <h2
         style={{
-          content: {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            right: 'auto',
-            bottom: 'auto',
-            transform: 'translate(-50%, -50%)',
-            width: '400px',
-            maxWidth: '90%',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-            backgroundColor: 'white',
-          },
-          overlay: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9999,
-          },
+          fontSize: '24px',
+          fontWeight: 800,
+          color: '#333',
+          marginBottom: '15px',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
         }}
       >
-        <h2>Я хочу отметить:</h2>
-        {selectedDate && (
-          <p>
-            <strong>Дата:</strong> {new Date(selectedDate.startStr).toLocaleDateString('ru-RU')}
-            <br />
-            <strong>KP-индекс:</strong>{' '}
-            {selectedKpIndex !== null ? (
-              <span style={{ color: getKpColor(selectedKpIndex) }}>
-                {selectedKpIndex}
-              </span>
-            ) : (
-              <span>Нет данных</span>
-            )}
-          </p>
-        )}
-        <div>
-          <button onClick={() => handleTypeSelect('symptom')}>Симптом</button>
-          <button onClick={() => handleTypeSelect('medication')}>Лекарство</button>
-        </div>
-        <div>
-          <button type="button" onClick={closeModal}>Закрыть</button>
-        </div>
+        Я хочу отметить:
+      </h2>
+      {selectedDate && (
+        <p
+          style={{
+            fontSize: '16px',
+            color: '#555',
+            marginBottom: '15px',
+          }}
+        >
+          <strong
+            style={{
+              color: '#444',
+              fontWeight: 600,
+            }}
+          >
+            Дата:
+          </strong>{' '}
+          {new Date(selectedDate.startStr).toLocaleDateString('ru-RU')}
+          <br />
+          <strong
+            style={{
+              color: '#444',
+              fontWeight: 600,
+            }}
+          >
+            KP-индекс:
+          </strong>{' '}
+          {selectedKpIndex !== null ? (
+            <span style={{ color: getKpColor(selectedKpIndex) }}>{selectedKpIndex}</span>
+          ) : (
+            <span>Нет данных</span>
+          )}
+        </p>
+      )}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '15px',
+          marginBottom: '15px',
+        }}
+      >
+        <button
+          style={{
+            borderRadius: '20px',
+            border: '1px solid #6eb2bada',
+            backgroundColor: '#0b7c89ae',
+            color: '#ffffff',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            padding: '12px 45px',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            transition: 'transform 80ms ease-in',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#0b7c89';
+            e.currentTarget.style.transform = 'translateY(-3px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#0b7c89ae';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+          onClick={() => handleTypeSelect('symptom')}
+        >
+          Симптом
+        </button>
+        <button
+          style={{
+            borderRadius: '20px',
+            border: '1px solid #6eb2bada',
+            backgroundColor: '#0b7c89ae',
+            color: '#ffffff',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            padding: '12px 45px',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            transition: 'transform 80ms ease-in',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#0b7c89';
+            e.currentTarget.style.transform = 'translateY(-3px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#0b7c89ae';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+          onClick={() => handleTypeSelect('medication')}
+        >
+          Лекарство
+        </button>
+      </div>
+      <div>
+        <button
+          style={{
+            borderRadius: '20px',
+            border: '1px solid #ff4b2b',
+            backgroundColor: '#ff4b2b',
+            color: '#ffffff',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            padding: '12px 45px',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            transition: 'transform 80ms ease-in',
+            width: '100%',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#e6391a';
+            e.currentTarget.style.transform = 'translateY(-3px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#ff4b2b';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+          type="button"
+          onClick={closeModal}
+        >
+          Закрыть
+        </button>
+      </div>
       </Modal>
+
+
+
 
       <Modal
         isOpen={isSymptomModalOpen}
@@ -703,18 +818,16 @@ const Calendar: React.FC = () => {
         contentLabel="Input Data Modal"
         style={{
           content: {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            right: 'auto',
-            bottom: 'auto',
-            transform: 'translate(-50%, -50%)',
+            fontFamily: "'Montserrat', sans-serif",
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+            padding: '20px',
             width: '400px',
             maxWidth: '90%',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-            backgroundColor: 'white',
+            minHeight: 'auto', // Подстраиваем высоту под содержимое
+            textAlign: 'center',
+            position: 'static', // Убираем position: absolute, используем flex в overlay
           },
           overlay: {
             position: 'fixed',
@@ -730,46 +843,218 @@ const Calendar: React.FC = () => {
           },
         }}
       >
-        <h2>Введите данные для симптома</h2>
+        <h2
+          style={{
+            fontSize: '24px',
+            fontWeight: 800,
+            color: '#333',
+            marginBottom: '15px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}
+        >
+          Введите данные для симптома
+        </h2>
         <form onSubmit={handleSaveSymptom}>
-          <div>
-            <label>Название симптома:</label>
+          <div
+            style={{
+              marginBottom: '15px',
+              textAlign: 'left',
+            }}
+          >
+            <label
+              style={{
+                fontSize: '16px',
+                fontWeight: 600,
+                color: '#444',
+                display: 'block',
+                marginBottom: '5px',
+              }}
+            >
+              Название симптома:
+            </label>
             <Select
               value={symptomOptions.find((option: Option) => option.value === selectedSymptom)}
               onChange={handleSymptomChange}
               options={symptomOptions}
               placeholder="Выберите симптом"
               isSearchable
+              styles={{
+                control: (provided) => ({
+                  ...provided,
+                  borderRadius: '7px',
+                  border: 'none',
+                  backgroundColor: '#eee',
+                  padding: '5px',
+                  fontSize: '16px',
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  borderRadius: '7px',
+                }),
+              }}
             />
             <p
-              style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px' }}
+              style={{
+                color: 'blue',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                marginTop: '5px',
+                fontSize: '14px',
+              }}
               onClick={() => openAddNewModal('symptom')}
             >
               Не нашли нужного? Добавить свой
             </p>
           </div>
-          <div>
-            <label>Время симптома:</label>
-            <input type="time" value={symptomTime} onChange={handleSymptomTimeChange} />
+          <div
+            style={{
+              marginBottom: '15px',
+              textAlign: 'left',
+            }}
+          >
+            <label
+              style={{
+                fontSize: '16px',
+                fontWeight: 600,
+                color: '#444',
+                display: 'block',
+                marginBottom: '5px',
+              }}
+            >
+              Время симптома:
+            </label>
+            <input
+              type="time"
+              value={symptomTime}
+              onChange={handleSymptomTimeChange}
+              style={{
+                width: '100%',
+                padding: '12px 15px',
+                borderRadius: '7px',
+                border: 'none',
+                backgroundColor: '#eee',
+                fontSize: '16px',
+              }}
+            />
           </div>
-          <div>
-            <label>Тяжесть симптома:</label>
-            <div>
+          <div
+            style={{
+              marginBottom: '15px',
+              textAlign: 'left',
+            }}
+          >
+            <label
+              style={{
+                fontSize: '16px',
+                fontWeight: 600,
+                color: '#444',
+                display: 'block',
+                marginBottom: '5px',
+              }}
+            >
+              Тяжесть симптома:
+            </label>
+            <div
+              style={{
+                display: 'flex',
+                gap: '10px',
+                justifyContent: 'center',
+              }}
+            >
               {[1, 2, 3, 4, 5].map((sev) => (
                 <button
                   type="button"
                   key={sev}
                   className={`severity-button ${severity === sev ? 'selected' : ''}`}
                   onClick={() => handleSeverityChange(sev)}
+                  style={{
+                    backgroundColor: severity === sev ? '#0b7c89ae' : '#eee',
+                    color: severity === sev ? '#ffffff' : '#555',
+                    border: '1px solid #6eb2bada',
+                    borderRadius: '7px',
+                    padding: '10px 15px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (severity !== sev) {
+                      e.currentTarget.style.backgroundColor = '#ddd';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (severity !== sev) {
+                      e.currentTarget.style.backgroundColor = '#eee';
+                    }
+                  }}
                 >
                   {sev}
                 </button>
               ))}
             </div>
           </div>
-          <div>
-            <button type="button" onClick={closeSecondModal}>Закрыть</button>
-            <button type="submit">Сохранить</button>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '15px',
+            }}
+          >
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #ff4b2b',
+                backgroundColor: '#ff4b2b',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 45px',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e6391a';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ff4b2b';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="button"
+              onClick={closeSecondModal}
+            >
+              Закрыть
+            </button>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #6eb2bada',
+                backgroundColor: '#0b7c89ae',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 45px',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#0b7c89';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#0b7c89ae';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="submit"
+            >
+              Сохранить
+            </button>
           </div>
         </form>
       </Modal>
@@ -821,331 +1106,994 @@ const Calendar: React.FC = () => {
         </div>
       </Modal>
 
-      <Modal
-        isOpen={isMedicationModalOpen}
-        onRequestClose={closeMedicationModal}
-        contentLabel="Input Medication Data Modal"
-        style={{
-          content: {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            right: 'auto',
-            bottom: 'auto',
-            transform: 'translate(-50%, -50%)',
-            width: '400px',
-            maxWidth: '90%',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-            backgroundColor: 'white',
-          },
-          overlay: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9999,
-          },
-        }}
-      >
-        <h2>Введите данные для лекарства</h2>
-        <form onSubmit={handleSaveMedication}>
-          <div>
-            <label>Название лекарства:</label>
-            <Select
-              value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
-              onChange={handleMedicationChange}
-              options={medicationOptions}
-              placeholder="Выберите лекарство"
-              isSearchable
-            />
-            <p
-              style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px' }}
-              onClick={() => openAddNewModal('medication')}
-            >
-              Не нашли нужного? Добавить своё
-            </p>
-          </div>
-          <div>
-            <label>Время приема:</label>
-            <input type="time" value={medicationTime} onChange={handleMedicationTimeChange} />
-          </div>
-          <div>
-            <label>Количество (шт) (необязательно):</label>
-            <input
-              type="number"
-              value={quantity ?? ''} // Используем ?? вместо ||, чтобы корректно отображать 0
-              onChange={handleQuantityChange}
-              placeholder="Количество"
-              min="0"
-            />
-          </div>
-          <div>
-            <label>Дозировка (мг) (необязательно):</label>
-            <input
-              type="number"
-              value={dosage ?? ''} // Используем ?? вместо ||, чтобы корректно отображать 0
-              onChange={handleDosageChange}
-              placeholder="Дозировка"
-              min="0"
-            />
-          </div>
-          <div>
-            <button type="button" onClick={closeMedicationModal}>Закрыть</button>
-            <button type="submit">Сохранить</button>
-          </div>
-        </form>
-      </Modal>
+
+
+
 
       <Modal
-        isOpen={isEventModalOpen}
-        onRequestClose={closeEventModal}
-        contentLabel="Event Details Modal"
+      isOpen={isMedicationModalOpen}
+      onRequestClose={closeMedicationModal}
+      contentLabel="Input Medication Data Modal"
+      style={{
+        content: {
+          fontFamily: "'Montserrat', sans-serif",
+          backgroundColor: '#fff',
+          borderRadius: '12px',
+          boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+          padding: '20px',
+          width: '400px',
+          maxWidth: '90%',
+          minHeight: 'auto', // Подстраиваем высоту под содержимое
+          textAlign: 'center',
+          position: 'static', // Убираем position: absolute, используем flex в overlay
+        },
+        overlay: {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+        },
+      }}
+    >
+      <h2
         style={{
-          content: {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            right: 'auto',
-            bottom: 'auto',
-            transform: 'translate(-50%, -50%)',
-            width: '400px',
-            maxWidth: '90%',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-            backgroundColor: 'white',
-          },
-          overlay: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9999,
-          },
+          fontSize: '24px',
+          fontWeight: 800,
+          color: '#333',
+          marginBottom: '15px',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
         }}
       >
-        <h2>Информация о событии</h2>
-        {selectedEvent && (
-          <div>
-            <p><strong>Название:</strong> {selectedEvent.title}</p>
-            <p><strong>Дата и время:</strong> {new Date(selectedEvent.start!).toLocaleString('ru-RU')}</p>
-            {selectedEvent.extendedProps.type === 'symptom' && (
-              <>
-                <p><strong>Тяжесть:</strong> {selectedEvent.extendedProps.weight}</p>
-              </>
-            )}
-            {selectedEvent.extendedProps.type === 'medication' && (
-              <>
-                <p><strong>Количество:</strong> {selectedEvent.extendedProps.notes ?? 'Не указано'}</p>
-                <p><strong>Дозировка:</strong> {selectedEvent.extendedProps.dosage ? `${selectedEvent.extendedProps.dosage} мг` : 'Не указано'}</p>
-              </>
-            )}
-          </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-          <button
-            type="button"
-            onClick={closeEventModal}
+        Введите данные для лекарства
+      </h2>
+      <form onSubmit={handleSaveMedication}>
+        <div
+          style={{
+            marginBottom: '15px',
+            textAlign: 'left',
+          }}
+        >
+          <label
             style={{
-              padding: '8px 16px',
-              backgroundColor: '#6c757d',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 600,
+              color: '#444',
+              display: 'block',
+              marginBottom: '5px',
             }}
+          >
+            Название лекарства:
+          </label>
+          <Select
+            value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
+            onChange={handleMedicationChange}
+            options={medicationOptions}
+            placeholder="Выберите лекарство"
+            isSearchable
+            styles={{
+              control: (provided) => ({
+                ...provided,
+                borderRadius: '7px',
+                border: 'none',
+                backgroundColor: '#eee',
+                padding: '5px',
+                fontSize: '16px',
+              }),
+              menu: (provided) => ({
+                ...provided,
+                borderRadius: '7px',
+              }),
+            }}
+          />
+          <p
+            style={{
+              color: 'blue',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              marginTop: '5px',
+              fontSize: '14px',
+            }}
+            onClick={() => openAddNewModal('medication')}
+          >
+            Не нашли нужного? Добавить своё
+          </p>
+        </div>
+        <div
+          style={{
+            marginBottom: '15px',
+            textAlign: 'left',
+          }}
+        >
+          <label
+            style={{
+              fontSize: '16px',
+              fontWeight: 600,
+              color: '#444',
+              display: 'block',
+              marginBottom: '5px',
+            }}
+          >
+            Время приема:
+          </label>
+          <input
+            type="time"
+            value={medicationTime}
+            onChange={handleMedicationTimeChange}
+            style={{
+              width: '100%',
+              padding: '12px 15px',
+              borderRadius: '7px',
+              border: 'none',
+              backgroundColor: '#eee',
+              fontSize: '16px',
+            }}
+          />
+        </div>
+        <div
+          style={{
+            marginBottom: '15px',
+            textAlign: 'left',
+          }}
+        >
+          <label
+            style={{
+              fontSize: '16px',
+              fontWeight: 600,
+              color: '#444',
+              display: 'block',
+              marginBottom: '5px',
+            }}
+          >
+            Количество (шт) (необязательно):
+          </label>
+          <input
+            type="number"
+            value={quantity ?? ''}
+            onChange={handleQuantityChange}
+            placeholder="Количество"
+            min="0"
+            style={{
+              width: '100%',
+              padding: '12px 15px',
+              borderRadius: '7px',
+              border: 'none',
+              backgroundColor: '#eee',
+              fontSize: '16px',
+            }}
+          />
+        </div>
+        <div
+          style={{
+            marginBottom: '15px',
+            textAlign: 'left',
+          }}
+        >
+          <label
+            style={{
+              fontSize: '16px',
+              fontWeight: 600,
+              color: '#444',
+              display: 'block',
+              marginBottom: '5px',
+            }}
+          >
+            Дозировка (мг) (необязательно):
+          </label>
+          <input
+            type="number"
+            value={dosage ?? ''}
+            onChange={handleDosageChange}
+            placeholder="Дозировка"
+            min="0"
+            style={{
+              width: '100%',
+              padding: '12px 15px',
+              borderRadius: '7px',
+              border: 'none',
+              backgroundColor: '#eee',
+              fontSize: '16px',
+            }}
+          />
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '15px',
+          }}
+        >
+          <button
+            style={{
+              borderRadius: '20px',
+              border: '1px solid #ff4b2b',
+              backgroundColor: '#ff4b2b',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              padding: '12px 45px',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'transform 80ms ease-in',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#e6391a';
+              e.currentTarget.style.transform = 'translateY(-3px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#ff4b2b';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+            type="button"
+            onClick={closeMedicationModal}
           >
             Закрыть
           </button>
           <button
-            type="button"
-            onClick={handleEditEvent}
             style={{
-              padding: '8px 16px',
-              backgroundColor: '#007bff',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
+              borderRadius: '20px',
+              border: '1px solid #6eb2bada',
+              backgroundColor: '#0b7c89ae',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              padding: '12px 45px',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
               cursor: 'pointer',
+              transition: 'transform 80ms ease-in',
             }}
-          >
-            Изменить
-          </button>
-          <button
-            type="button"
-            onClick={handleDeleteEvent}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#dc3545',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0b7c89';
+              e.currentTarget.style.transform = 'translateY(-3px)';
             }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#0b7c89ae';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+            type="submit"
           >
-            Удалить
+            Сохранить
           </button>
         </div>
-      </Modal>
+      </form>
+    </Modal>
 
-      <Modal
-        isOpen={isUpdateSymptomEventModalOpen}
-        onRequestClose={closeUpdateSymptomEventModal}
-        contentLabel="Update Symptom Event Modal"
+    <Modal
+    isOpen={isEventModalOpen}
+    onRequestClose={closeEventModal}
+    contentLabel="Event Details Modal"
+    style={{
+      content: {
+        fontFamily: "'Montserrat', sans-serif",
+        backgroundColor: '#fff',
+        borderRadius: '12px',
+        boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+        padding: '20px',
+        width: '400px',
+        maxWidth: '90%',
+        minHeight: 'auto',
+        textAlign: 'center',
+        position: 'static',
+      },
+      overlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9999,
+      },
+    }}
+  >
+    <h2
+      style={{
+        fontSize: '24px',
+        fontWeight: 800,
+        color: '#333',
+        marginBottom: '15px',
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+      }}
+    >
+      Информация о событии
+    </h2>
+    {selectedEvent && (
+      <div
         style={{
-          content: {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            right: 'auto',
-            bottom: 'auto',
-            transform: 'translate(-50%, -50%)',
-            width: '400px',
-            maxWidth: '90%',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-            backgroundColor: 'white',
-          },
-          overlay: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9999,
-          },
+          marginBottom: '15px',
+          textAlign: 'left',
         }}
       >
-        <h2>Редактирование симптома</h2>
-        <form onSubmit={handleSaveSymptomEdit}>
-          <div>
-            <label>Название симптома:</label>
-            <Select
-              value={symptomOptions.find((option: Option) => option.value === selectedSymptom)}
-              onChange={handleSymptomChange}
-              options={symptomOptions}
-              placeholder="Выберите симптом"
-              isSearchable
-            />
-          </div>
-          <div>
-            <label>Время симптома:</label>
-            <input type="time" value={symptomTime} onChange={handleSymptomTimeChange} />
-          </div>
-          <div>
-            <label>Тяжесть симптома:</label>
-            <div>
-              {[1, 2, 3, 4, 5].map((sev) => (
-                <button
-                  type="button"
-                  key={sev}
-                  className={`severity-button ${severity === sev ? 'selected' : ''}`}
-                  onClick={() => handleSeverityChange(sev)}
-                >
-                  {sev}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <button type="button" onClick={closeUpdateSymptomEventModal}>Закрыть</button>
-            <button type="submit">Сохранить</button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal
-        isOpen={isUpdateMedicalEventModalOpen}
-        onRequestClose={closeUpdateMedicalEventModal}
-        contentLabel="Update Medical Event Modal"
+        <p
+          style={{
+            fontSize: '16px',
+            color: '#555',
+            marginBottom: '10px',
+          }}
+        >
+          <strong
+            style={{
+              color: '#444',
+              fontWeight: 600,
+            }}
+          >
+            Название:
+          </strong>{' '}
+          {selectedEvent.title}
+        </p>
+        <p
+          style={{
+            fontSize: '16px',
+            color: '#555',
+            marginBottom: '10px',
+          }}
+        >
+          <strong
+            style={{
+              color: '#444',
+              fontWeight: 600,
+            }}
+          >
+            Дата и время:
+          </strong>{' '}
+          {new Date(selectedEvent.start!).toLocaleString('ru-RU')}
+        </p>
+        {selectedEvent.extendedProps.type === 'symptom' && (
+          <p
+            style={{
+              fontSize: '16px',
+              color: '#555',
+              marginBottom: '10px',
+            }}
+          >
+            <strong
+              style={{
+                color: '#444',
+                fontWeight: 600,
+              }}
+            >
+              Тяжесть:
+            </strong>{' '}
+            {selectedEvent.extendedProps.weight}
+          </p>
+        )}
+        {selectedEvent.extendedProps.type === 'medication' && (
+          <>
+            <p
+              style={{
+                fontSize: '16px',
+                color: '#555',
+                marginBottom: '10px',
+              }}
+            >
+              <strong
+                style={{
+                  color: '#444',
+                  fontWeight: 600,
+                }}
+              >
+                Количество:
+              </strong>{' '}
+              {selectedEvent.extendedProps.notes ?? 'Не указано'}
+            </p>
+            <p
+              style={{
+                fontSize: '16px',
+                color: '#555',
+                marginBottom: '10px',
+              }}
+            >
+              <strong
+                style={{
+                  color: '#444',
+                  fontWeight: 600,
+                }}
+              >
+                Дозировка:
+              </strong>{' '}
+              {selectedEvent.extendedProps.dosage ? `${selectedEvent.extendedProps.dosage} мг` : 'Не указано'}
+            </p>
+          </>
+        )}
+      </div>
+    )}
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '15px',
+        alignItems: 'center',
+      }}
+    >
+      <div
         style={{
-          content: {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            right: 'auto',
-            bottom: 'auto',
-            transform: 'translate(-50%, -50%)',
-            width: '400px',
-            maxWidth: '90%',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-            backgroundColor: 'white',
-          },
-          overlay: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9999,
-          },
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '15px',
+          width: '100%',
         }}
       >
-        <h2>Редактирование лекарства</h2>
-        <form onSubmit={handleSaveMedicalEdit}>
-          <div>
-            <label>Название лекарства:</label>
-            <Select
-              value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
-              onChange={handleMedicationChange}
-              options={medicationOptions}
-              placeholder="Выберите лекарство"
-              isSearchable
-            />
-          </div>
-          <div>
-            <label>Время приема:</label>
-            <input type="time" value={medicationTime} onChange={handleMedicationTimeChange} />
-          </div>
-          <div>
-            <label>Количество (шт) (необязательно):</label>
-            <input
-              type="number"
-              value={quantity ?? ''} // Используем ?? вместо ||, чтобы корректно отображать 0
-              onChange={handleQuantityChange}
-              placeholder="Количество"
-              min="0"
-            />
-          </div>
-          <div>
-            <label>Дозировка (мг) (необязательно):</label>
-            <input
-              type="number"
-              value={dosage ?? ''} // Используем ?? вместо ||, чтобы корректно отображать 0
-              onChange={handleDosageChange}
-              placeholder="Дозировка"
-              min="0"
-            />
-          </div>
-          <div>
-            <button type="button" onClick={closeUpdateMedicalEventModal}>Закрыть</button>
-            <button type="submit">Сохранить</button>
-          </div>
-        </form>
-      </Modal>
+        <button
+          style={{
+            borderRadius: '20px',
+            border: '1px solid #6eb2bada',
+            backgroundColor: '#0b7c89ae',
+            color: '#ffffff',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            padding: '12px 0', // Убираем боковые padding, чтобы ширина зависела от flex
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            transition: 'transform 80ms ease-in',
+            flex: '1', // Обе кнопки занимают одинаковую ширину
+            maxWidth: '150px', // Ограничиваем ширину каждой кнопки
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#0b7c89';
+            e.currentTarget.style.transform = 'translateY(-3px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#0b7c89ae';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+          type="button"
+          onClick={handleEditEvent}
+        >
+          Изменить
+        </button>
+        <button
+          style={{
+            borderRadius: '20px',
+            border: '1px solid #dc3545',
+            backgroundColor: '#dc3545',
+            color: '#ffffff',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            padding: '12px 0',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            transition: 'transform 80ms ease-in',
+            flex: '1',
+            maxWidth: '150px',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#c82333';
+            e.currentTarget.style.transform = 'translateY(-3px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#dc3545';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+          type="button"
+          onClick={handleDeleteEvent}
+        >
+          Удалить
+        </button>
+      </div>
+      <button
+        style={{
+          borderRadius: '20px',
+          border: '1px solid #ff4b2b',
+          backgroundColor: '#ff4b2b',
+          color: '#ffffff',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          padding: '12px 0',
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          transition: 'transform 80ms ease-in',
+          width: '100%',
+          maxWidth: '315px', // Ширина равна сумме ширин двух кнопок (150px + 150px + 15px gap)
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#e6391a';
+          e.currentTarget.style.transform = 'translateY(-3px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#ff4b2b';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
+        type="button"
+        onClick={closeEventModal}
+      >
+        Закрыть
+      </button>
+    </div>
+  </Modal>
+
+  <Modal
+  isOpen={isUpdateSymptomEventModalOpen}
+  onRequestClose={closeUpdateSymptomEventModal}
+  contentLabel="Update Symptom Event Modal"
+  style={{
+    content: {
+      fontFamily: "'Montserrat', sans-serif",
+      backgroundColor: '#fff',
+      borderRadius: '12px',
+      boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+      padding: '20px',
+      width: '400px',
+      maxWidth: '90%',
+      minHeight: 'auto', // Подстраиваем высоту под содержимое
+      textAlign: 'center',
+      position: 'static', // Убираем position: absolute, используем flex в overlay
+    },
+    overlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999,
+    },
+  }}
+>
+  <h2
+    style={{
+      fontSize: '24px',
+      fontWeight: 800,
+      color: '#333',
+      marginBottom: '15px',
+      textTransform: 'uppercase',
+      letterSpacing: '1px',
+    }}
+  >
+    Редактирование симптома
+  </h2>
+  <form onSubmit={handleSaveSymptomEdit}>
+    <div
+      style={{
+        marginBottom: '15px',
+        textAlign: 'left',
+      }}
+    >
+      <label
+        style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          color: '#444',
+          display: 'block',
+          marginBottom: '5px',
+        }}
+      >
+        Название симптома:
+      </label>
+      <Select
+        value={symptomOptions.find((option: Option) => option.value === selectedSymptom)}
+        onChange={handleSymptomChange}
+        options={symptomOptions}
+        placeholder="Выберите симптом"
+        isSearchable
+        styles={{
+          control: (provided) => ({
+            ...provided,
+            borderRadius: '7px',
+            border: 'none',
+            backgroundColor: '#eee',
+            padding: '5px',
+            fontSize: '16px',
+          }),
+          menu: (provided) => ({
+            ...provided,
+            borderRadius: '7px',
+          }),
+        }}
+      />
+    </div>
+    <div
+      style={{
+        marginBottom: '15px',
+        textAlign: 'left',
+      }}
+    >
+      <label
+        style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          color: '#444',
+          display: 'block',
+          marginBottom: '5px',
+        }}
+      >
+        Время симптома:
+      </label>
+      <input
+        type="time"
+        value={symptomTime}
+        onChange={handleSymptomTimeChange}
+        style={{
+          width: '100%',
+          padding: '12px 15px',
+          borderRadius: '7px',
+          border: 'none',
+          backgroundColor: '#eee',
+          fontSize: '16px',
+        }}
+      />
+    </div>
+    <div
+      style={{
+        marginBottom: '15px',
+        textAlign: 'left',
+      }}
+    >
+      <label
+        style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          color: '#444',
+          display: 'block',
+          marginBottom: '5px',
+        }}
+      >
+        Тяжесть симптома:
+      </label>
+      <div
+        style={{
+          display: 'flex',
+          gap: '10px',
+          justifyContent: 'center',
+        }}
+      >
+        {[1, 2, 3, 4, 5].map((sev) => (
+          <button
+            type="button"
+            key={sev}
+            className={`severity-button ${severity === sev ? 'selected' : ''}`}
+            onClick={() => handleSeverityChange(sev)}
+            style={{
+              backgroundColor: severity === sev ? '#0b7c89ae' : '#eee',
+              color: severity === sev ? '#ffffff' : '#555',
+              border: '1px solid #6eb2bada',
+              borderRadius: '7px',
+              padding: '10px 15px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'background-color 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (severity !== sev) {
+                e.currentTarget.style.backgroundColor = '#ddd';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (severity !== sev) {
+                e.currentTarget.style.backgroundColor = '#eee';
+              }
+            }}
+          >
+            {sev}
+          </button>
+        ))}
+      </div>
+    </div>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '15px',
+      }}
+    >
+      <button
+        style={{
+          borderRadius: '20px',
+          border: '1px solid #ff4b2b',
+          backgroundColor: '#ff4b2b',
+          color: '#ffffff',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          padding: '12px 45px',
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          transition: 'transform 80ms ease-in',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#e6391a';
+          e.currentTarget.style.transform = 'translateY(-3px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#ff4b2b';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
+        type="button"
+        onClick={closeUpdateSymptomEventModal}
+      >
+        Закрыть
+      </button>
+      <button
+        style={{
+          borderRadius: '20px',
+          border: '1px solid #6eb2bada',
+          backgroundColor: '#0b7c89ae',
+          color: '#ffffff',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          padding: '12px 45px',
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          transition: 'transform 80ms ease-in',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#0b7c89';
+          e.currentTarget.style.transform = 'translateY(-3px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#0b7c89ae';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
+        type="submit"
+      >
+        Сохранить
+      </button>
+    </div>
+  </form>
+</Modal>
+
+<Modal
+  isOpen={isUpdateMedicalEventModalOpen}
+  onRequestClose={closeUpdateMedicalEventModal}
+  contentLabel="Update Medical Event Modal"
+  style={{
+    content: {
+      fontFamily: "'Montserrat', sans-serif",
+      backgroundColor: '#fff',
+      borderRadius: '12px',
+      boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+      padding: '20px',
+      width: '400px',
+      maxWidth: '90%',
+      minHeight: 'auto', // Подстраиваем высоту под содержимое
+      textAlign: 'center',
+      position: 'static', // Убираем position: absolute, используем flex в overlay
+    },
+    overlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999,
+    },
+  }}
+>
+  <h2
+    style={{
+      fontSize: '24px',
+      fontWeight: 800,
+      color: '#333',
+      marginBottom: '15px',
+      textTransform: 'uppercase',
+      letterSpacing: '1px',
+    }}
+  >
+    Редактирование лекарства
+  </h2>
+  <form onSubmit={handleSaveMedicalEdit}>
+    <div
+      style={{
+        marginBottom: '15px',
+        textAlign: 'left',
+      }}
+    >
+      <label
+        style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          color: '#444',
+          display: 'block',
+          marginBottom: '5px',
+        }}
+      >
+        Название лекарства:
+      </label>
+      <Select
+        value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
+        onChange={handleMedicationChange}
+        options={medicationOptions}
+        placeholder="Выберите лекарство"
+        isSearchable
+        styles={{
+          control: (provided) => ({
+            ...provided,
+            borderRadius: '7px',
+            border: 'none',
+            backgroundColor: '#eee',
+            padding: '5px',
+            fontSize: '16px',
+          }),
+          menu: (provided) => ({
+            ...provided,
+            borderRadius: '7px',
+          }),
+        }}
+      />
+    </div>
+    <div
+      style={{
+        marginBottom: '15px',
+        textAlign: 'left',
+      }}
+    >
+      <label
+        style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          color: '#444',
+          display: 'block',
+          marginBottom: '5px',
+        }}
+      >
+        Время приема:
+      </label>
+      <input
+        type="time"
+        value={medicationTime}
+        onChange={handleMedicationTimeChange}
+        style={{
+          width: '100%',
+          padding: '12px 15px',
+          borderRadius: '7px',
+          border: 'none',
+          backgroundColor: '#eee',
+          fontSize: '16px',
+        }}
+      />
+    </div>
+    <div
+      style={{
+        marginBottom: '15px',
+        textAlign: 'left',
+      }}
+    >
+      <label
+        style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          color: '#444',
+          display: 'block',
+          marginBottom: '5px',
+        }}
+      >
+        Количество (шт) (необязательно):
+      </label>
+      <input
+        type="number"
+        value={quantity ?? ''}
+        onChange={handleQuantityChange}
+        placeholder="Количество"
+        min="0"
+        style={{
+          width: '100%',
+          padding: '12px 15px',
+          borderRadius: '7px',
+          border: 'none',
+          backgroundColor: '#eee',
+          fontSize: '16px',
+        }}
+      />
+    </div>
+    <div
+      style={{
+        marginBottom: '15px',
+        textAlign: 'left',
+      }}
+    >
+      <label
+        style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          color: '#444',
+          display: 'block',
+          marginBottom: '5px',
+        }}
+      >
+        Дозировка (мг) (необязательно):
+      </label>
+      <input
+        type="number"
+        value={dosage ?? ''}
+        onChange={handleDosageChange}
+        placeholder="Дозировка"
+        min="0"
+        style={{
+          width: '100%',
+          padding: '12px 15px',
+          borderRadius: '7px',
+          border: 'none',
+          backgroundColor: '#eee',
+          fontSize: '16px',
+        }}
+      />
+    </div>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '15px',
+      }}
+    >
+      <button
+        style={{
+          borderRadius: '20px',
+          border: '1px solid #ff4b2b',
+          backgroundColor: '#ff4b2b',
+          color: '#ffffff',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          padding: '12px 45px',
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          transition: 'transform 80ms ease-in',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#e6391a';
+          e.currentTarget.style.transform = 'translateY(-3px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#ff4b2b';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
+        type="button"
+        onClick={closeUpdateMedicalEventModal}
+      >
+        Закрыть
+      </button>
+      <button
+        style={{
+          borderRadius: '20px',
+          border: '1px solid #6eb2bada',
+          backgroundColor: '#0b7c89ae',
+          color: '#ffffff',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          padding: '12px 45px',
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          transition: 'transform 80ms ease-in',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#0b7c89';
+          e.currentTarget.style.transform = 'translateY(-3px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#0b7c89ae';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
+        type="submit"
+      >
+        Сохранить
+      </button>
+    </div>
+  </form>
+</Modal>
     </div>
   );
 };

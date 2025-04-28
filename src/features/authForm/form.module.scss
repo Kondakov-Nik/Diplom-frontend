@@ -1,136 +1,225 @@
-.form {
-  text-align: center;
-  & p {
-    margin-top: 1px;
-    margin-right: auto;
-    margin-left: 17px;
-    font-weight: 480;  /* Устанавливаем более жирный шрифт */
-  }
+@import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #f6f5f7;
   display: flex;
-  
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
+  flex-direction: column;
+
+
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
-.biba{
-  text-align: center; /* Центрирование текста */
+.container {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+  position: relative;
+  overflow: hidden;
+  width: 768px;
+  max-width: 100%;
+  min-height: 600px;
+  margin: 20px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Montserrat', sans-serif; /* Применяем шрифт только к форме */
+
 }
 
-.wrapper {
-  background-color: #f1f1f1;
-  padding-top: 4%;
-  padding: 4%;
+.formContainer {
+  position: absolute;
+  top: 0;
   height: 100%;
-  border-radius: 20px;
-  margin: -30px;
+  transition: all 0.6s ease-in-out;
 }
 
-h1 {
-  color: #7eb2b8;
+.signInContainer {
+  left: 0;
+  width: 50%;
+  z-index: 2;
+}
+
+.container.rightPanelActive .signInContainer {
+  transform: translateX(100%);
+}
+
+.signUpContainer {
+  left: 0;
+  width: 50%;
+  opacity: 0;
+  z-index: 1;
+}
+
+.container.rightPanelActive .signUpContainer {
+  transform: translateX(100%);
+  opacity: 1;
+  z-index: 5;
+  animation: show 0.6s;
+}
+
+@keyframes show {
+  0%, 49.99% {
+    opacity: 0;
+    z-index: 1;
+  }
+  50%, 100% {
+    opacity: 1;
+    z-index: 5;
+  }
+}
+
+.overlayContainer {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  overflow: hidden;
+  transition: transform 0.6s ease-in-out;
+  z-index: 100;
+}
+
+.container.rightPanelActive .overlayContainer {
+  transform: translateX(-100%);
+}
+
+.overlay {
+  background: linear-gradient(to right, #0b7d89ae, #37aab794); /* Новый градиент */
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: #ffffff;
+  position: relative;
+  left: -100%;
+  height: 100%;
+  width: 200%;
+  transform: translateX(0);
+  transition: transform 0.6s ease-in-out;
+}
+
+.container.rightPanelActive .overlay {
+  transform: translateX(50%);
+}
+
+.overlayPanel {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 0 40px;
   text-align: center;
-  font-size: 2.7rem;
-  margin-top: 10px; /* Отступ сверху */
-  margin-bottom: 20px; /* Отступ снизу */
+  top: 0;
+  height: 100%;
+  width: 50%;
+  transform: translateX(0);
+  transition: transform 0.6s ease-in-out;
 }
 
-h3 {
-  text-align: center; /* Центрирование текста */
-  font-size: 1.1rem; /* Уменьшаем размер текста, можно подставить нужный размер */
-  margin-top: 10px; /* Отступ сверху */
-  margin-bottom: 20px; /* Отступ снизу */
+.overlayLeft {
+  transform: translateX(-20%);
 }
 
+.container.rightPanelActive .overlayLeft {
+  transform: translateX(0);
+}
 
+.overlayRight {
+  right: 0;
+  transform: translateX(0);
+}
 
-.window {
-  width: 366px;
-  height: auto;
-  margin: 0 auto;
-  padding-top: 25px;
-  padding-bottom: 2px;
-  border-radius: 30px;
-  background-color: #fff;}
-  
+.container.rightPanelActive .overlayRight {
+  transform: translateX(20%);
+}
 
+.ghost {
+  background-color: transparent;
+  border: 1px solid #ffffff;
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 12px 45px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 80ms ease-in;
+}
+
+.ghost:active {
+  transform: scale(0.95);
+}
+
+.form {
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 0 50px;
+  height: 100%;
+  text-align: center;
+  overflow-y: auto;
+}
 
 .input {
-  background: #f4f6f8;
+  background-color: #eee;
+  border: none;
+  padding: 12px 15px;
+  margin: 8px 0;
+  width: 100%;
+  font-size: 16px;
   border-radius: 7px;
-  margin-right: 15px;
-  margin-left: 15px;
-  height: 36px;
-  width: 330px;
-  font-size: 16px;
-  border: none;
 }
 
-.submitBtn{
-  margin-right: 15px;
-  margin-left: 15px;
-  padding: 11px 86px;
-  font-size: 16px;
-  font-weight: 600;
-  background-color: #7eb2b8; /* Основной цвет для кнопки */
-  color: #fff;
-  border-radius: 13px;
-  border: none;
+.submitBtn,
+.toggleButton {
+  border-radius: 20px;
+  border: 1px solid #6eb2bada;
+  background-color: #0b7c89ae;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 12px 45px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   cursor: pointer;
-  margin: 12px 12px;
-  display: inline-block;
-  text-align: center;
-  box-sizing: border-box;
-} 
+  transition: transform 80ms ease-in;
+  margin-top: 10px;
 
-/* Эффект при наведении */
-.submitBtn:hover {
-  background-color: #4768a4; /* Сменим цвет при наведении */
-  transform: translateY(-3px); /* Легкий подъем кнопки */
 }
 
-/* Эффект при фокусе */
-.submitBtn:focus {
-  outline: none; /* Убираем стандартную обводку при фокусе */
-  box-shadow: 0 0 10px rgba(255, 99, 71, 0.7); /* Добавляем тень при фокусе */
+.submitBtn:hover,
+.toggleButton:hover {
+  background-color: #5e8a90;
 }
 
-.error{
-  color:red;
+.submitBtn:active,
+.toggleButton:active {
+  transform: scale(0.95);
+}
+
+.error {
+  color: red;
   font-size: 12px;
   margin: 0;
   height: 15px;
 }
-.hideError{
-  visibility: hidden;
+
+.logo {
+  width: 160px;
+  height: auto;
+  margin-bottom: 10px;
 }
 
-/* Стили для кнопки переключения между входом и регистрацией */
-.toggleButton {
-  margin-right: 15px;
-  margin-left: 15px;
-  padding: 11px 147px;
-  font-size: 16px;
-  font-weight: 600;
-  background-color: #7eb2b8; /* Основной цвет для кнопки */
-  color: #fff;
-  border-radius: 13px;
-  border: none;
-  cursor: pointer;
-  margin: 12px 12px;
-  display: inline-block;
-  text-align: center;
-  box-sizing: border-box;
+h3 {
+  font-weight: bold;
+  margin: 0 0 20px;
 }
-
-/* Эффект при наведении */
-.toggleButton:hover {
-  background-color: #4768a4; /* Сменим цвет при наведении */
-  transform: translateY(-3px); /* Легкий подъем кнопки */
-}
-
-/* Эффект при фокусе */
-.toggleButton:focus {
-  outline: none; /* Убираем стандартную обводку при фокусе */
-  box-shadow: 0 0 10px rgba(255, 99, 71, 0.7); /* Добавляем тень при фокусе */
-}
-
-
