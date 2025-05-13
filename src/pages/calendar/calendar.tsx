@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from '../../hooks/hooks';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
+import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
 import { DateSelectArg, EventClickArg, EventApi, DatesSetArg } from '@fullcalendar/core';
 import Modal from 'react-modal';
 import ruLocale from '@fullcalendar/core/locales/ru';
@@ -211,6 +211,7 @@ const Calendar: React.FC = () => {
   };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
+    console.log('handleDateSelect вызвана:', selectInfo.startStr); // Отладка
     setSelectedDate(selectInfo);
   
     const selectedDateStr = selectInfo.startStr.split('T')[0];
@@ -228,6 +229,21 @@ const Calendar: React.FC = () => {
     }
   
     setIsModalOpen(true);
+  };
+
+  const handleDateClick = (clickInfo: DateClickArg) => {
+    console.log('handleDateClick вызвана:', clickInfo.dateStr); // Отладка
+    const selectInfo: DateSelectArg = {
+      start: clickInfo.date,
+      end: new Date(clickInfo.date.getTime() + 24 * 60 * 60 * 1000), // Следующий день
+      startStr: clickInfo.dateStr,
+      endStr: new Date(clickInfo.date.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      allDay: true,
+      view: clickInfo.view,
+      jsEvent: clickInfo.jsEvent,
+
+    };
+    handleDateSelect(selectInfo); // Вызываем handleDateSelect с преобразованным объектом
   };
 
   const handleTypeSelect = (type: 'symptom' | 'medication') => {
@@ -544,6 +560,9 @@ const Calendar: React.FC = () => {
             hour12: false,
           }}
           datesSet={handleDatesSet}
+
+          dateClick={handleDateClick} // Добавлено для одиночного касания
+          
         />
 
         {isFilterPanelOpen && (
@@ -2094,6 +2113,205 @@ const Calendar: React.FC = () => {
     </div>
   </form>
 </Modal>
+<style>
+{`
+  @media (max-width: 768px) {
+  /* Основной контейнер календаря */
+  .demo-app {
+    flex-direction: column;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  .demo-app-main {
+    padding: 1em;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Стили для FullCalendar */
+  .fc {
+    font-size: 12px;
+  }
+
+  .fc .fc-toolbar {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 16px;
+  }
+
+  .fc .fc-button {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .fc .fc-daygrid-day {
+    padding: 2px;
+    min-width: 48px; /* Увеличиваем ширину колонок дней */
+  }
+
+  .fc .fc-daygrid-body {
+    width: 100%;
+    min-width: 336px; /* 7 дней × 48px = 336px, для равномерного распределения */
+  }
+
+  .fc .fc-daygrid-day-number {
+    font-size: 10px;
+  }
+
+  .fc .fc-event {
+    font-size: 10px;
+    padding: 2px;
+    line-height: 1.2;
+  }
+
+  /* Панель фильтров */
+  .filter-modal {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    padding: 20px !important;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+
+  .filter-modal h4 {
+    font-size: 18px;
+  }
+
+  .filter-modal label {
+    font-size: 14px;
+  }
+
+  .filter-modal button {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  /* Убираем точку возле событий */
+  .fc-daygrid-event-dot {
+    display: none; /* Скрываем точку */
+  }
+
+  /* Модальные окна */
+  .modal-content {
+    width: 90% !important;
+    max-width: 320px !important;
+    padding: 15px !important;
+    min-height: unset !important;
+  }
+
+  .modal-content h2 {
+    font-size: 18px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .modal-content p,
+  .modal-content label {
+    font-size: 14px !important;
+  }
+
+  .modal-content input,
+  .modal-content select {
+    font-size: 14px !important;
+    padding: 8px !important;
+  }
+
+  .modal-content button {
+    font-size: 10px !important;
+    padding: 8px 20px !important;
+    border-radius: 15px !important;
+  }
+
+  /* Кнопки в модальных окнах */
+  .modal-content .severity-button {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+
+  /* Контейнеры кнопок */
+  .modal-content > div[style*="display: flex"] {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .modal-content > div[style*="display: flex"] > button {
+    width: 100% !important;
+    max-width: unset !important;
+  }
+
+  /* Select компонент */
+  .modal-content .react-select__control {
+    font-size: 14px !important;
+    padding: 4px !important;
+  }
+
+  .modal-content .react-select__menu {
+    font-size: 14px !important;
+  }
+
+  /* Модальное окно добавления нового симптома/лекарства */
+  .modal-content[aria-label="Add New Symptom Modal"] {
+    width: 90% !important;
+    max-width: 300px !important;
+    padding: 15px !important;
+  }
+
+  .modal-content[aria-label="Add New Symptom Modal"] input {
+    font-size: 14px !important;
+    padding: 8px !important;
+  }
+
+  .modal-content[aria-label="Add New Symptom Modal"] button {
+    font-size: 12px !important;
+    padding: 8px 16px !important;
+  }
+
+  /* Скрытие лишних элементов на маленьких экранах */
+  .fc .fc-daygrid-more-link {
+    font-size: 10px;
+  }
+
+  /* Обеспечение прокрутки в длинных модальных окнах */
+  .modal-content {
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .fc .fc-toolbar-title {
+    font-size: 14px;
+  }
+
+  .fc .fc-button {
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+
+  .modal-content h2 {
+    font-size: 16px !important;
+  }
+
+  .modal-content p,
+  .modal-content label {
+    font-size: 12px !important;
+  }
+
+  .modal-content button {
+    font-size: 9px !important;
+    padding: 6px 16px !important;
+  }
+}
+`}
+</style>
     </div>
   );
 };

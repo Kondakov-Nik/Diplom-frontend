@@ -39,19 +39,19 @@
 }
 
 .consecutiveDaysWithoutSymptoms {
-  background: linear-gradient(135deg, #ff7e5f, #feb47b); /* Оранжево-розовый градиент */
+  background: linear-gradient(135deg, #ff7e5f, #feb47b);
 }
 
 .symptomsThisMonth {
-  background: linear-gradient(135deg, #6b48ff, #9981ff); /* Фиолетовый градиент */
+  background: linear-gradient(135deg, #6b48ff, #9981ff);
 }
 
 .medicationsThisMonth {
-  background: linear-gradient(135deg, #ff6f91, #ff9ab5); /* Розовый градиент */
+  background: linear-gradient(135deg, #ff6f91, #ff9ab5);
 }
 
 .mostFrequentSymptom {
-  background: linear-gradient(135deg, #1ccfc9, #6af6f0); /* Бирюзовый градиент */
+  background: linear-gradient(135deg, #1ccfc9, #6af6f0);
 }
 
 .topMetricLabel {
@@ -94,7 +94,6 @@
 }
 
 .kpIndexContainer {
-  //margin-left: auto;  /* Уменьшаем правый отступ */
   width: 300px;
   height: 200px;
   padding: 20px;
@@ -103,8 +102,8 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; // Выравниваем содержимое сверху
-  align-items: stretch; // Растягиваем содержимое по ширине
+  justify-content: flex-start;
+  align-items: stretch;
 }
 
 .kpIndexTitle {
@@ -113,9 +112,8 @@
   color: #333;
   text-transform: uppercase;
   margin-bottom: 10px;
-  text-align: center; // Центрируем заголовок
+  text-align: center;
 }
-
 
 /* Рекомендации на основе KP-индекса */
 .kpRecommendation {
@@ -141,16 +139,6 @@
   color: #555;
   margin: 0;
 }
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .kpRecommendation {
-    margin-left: 0;
-    margin-right: 0;
-  }
-}
-
-
 
 /* Футер */
 .footerContainer {
@@ -189,21 +177,114 @@
 
 /* Адаптивность */
 @media (max-width: 768px) {
+  .pageContainer {
+    padding: 10px;
+  }
+
+  .welcomeSection {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .welcomeText {
+    font-size: 24px;
+  }
+
+  .welcomeSubtitle {
+    font-size: 14px;
+    margin-top: 6px;
+  }
+
+  .topMetrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px; // Вернули исходный зазор
+    margin-bottom: 20px;
+  }
+
+  .topMetricCard {
+    padding: 12px; // Вернули исходный padding
+    width: 100%;
+  }
+
+  .topMetricLabel {
+    font-size: 13px; // Увеличен шрифт с 12px до 13px
+    margin-bottom: 6px;
+  }
+
+  .topMetricValue {
+    font-size: 22px; // Увеличен шрифт с 20px до 22px
+  }
+
   .chartAndKpContainer {
     flex-direction: column;
     align-items: center;
+    gap: 15px;
+    margin-top: 15px;
   }
 
   .chartContainer {
     max-width: 100%;
+    padding: 10px;
+    margin-top: 0;
+  }
+
+  .chartTitle {
+    font-size: 16px;
+    margin-bottom: 6px;
   }
 
   .kpIndexContainer {
     width: 100%;
-    max-width: 400px;
-    height: 250px; // Увеличиваем высоту для лучшего отображения на мобильных
+    max-width: 100%;
+    height: 200px;
+    padding: 15px;
+    margin-top: 15px;
+  }
+
+  .kpIndexTitle {
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+
+  .kpRecommendation {
+    margin-top: 15px;
+    padding: 15px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .recommendationTitle {
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+
+  .recommendationText {
+    font-size: 14px;
+  }
+
+  .footerContainer {
     margin-top: 20px;
   }
+
+  .footer {
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .info {
+    font-size: 12px;
+  }
+
+  .links {
+    margin-top: 10px;
+  }
+
+  .links a {
+    margin-left: 10px;
+    font-size: 12px;
+  }
 }
-
-

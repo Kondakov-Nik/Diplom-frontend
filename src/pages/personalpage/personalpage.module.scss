@@ -17,7 +17,7 @@
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
   max-width: 500px;
   width: 100%;
-  text-align: center; /* Центрируем заголовок и кнопку */
+  text-align: center;
 }
 
 .heading {
@@ -42,7 +42,7 @@
   margin-bottom: 15px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease;
-  text-align: left; /* Выравниваем текст внутри .infoItem по левому краю */
+  text-align: left;
 
   &:hover {
     transform: translateY(-3px);
@@ -53,18 +53,19 @@
   font-size: 24px;
   color: #7eb2b8;
   margin-right: 15px;
+  flex-shrink: 0;
 }
 
 .label {
   font-size: 16px;
   font-weight: 600;
   color: #444;
-
 }
 
 .value {
   font-size: 18px;
   color: #555;
+  word-break: break-word;
 }
 
 .logoutButton {
@@ -114,16 +115,35 @@
 
 /* Адаптивность */
 @media (max-width: 600px) {
+  .pageContainer {
+    padding: 5px; // Уменьшен общий padding для минимизации пространства
+    padding-top: 5px;
+    padding-bottom: 5px; // Уменьшен нижний отступ для минимизации пространства до футера
+    align-items: flex-start;
+    min-height: auto; // Убрано min-height: 100vh, чтобы избежать лишнего пространства
+  }
+
   .profileSection {
     padding: 20px;
+    max-width: 100%;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    margin-top: 0;
+    margin-bottom: 0; // Убираем нижний отступ
   }
 
   .heading {
-    font-size: 28px;
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .userInfo {
+    margin-bottom: 20px;
   }
 
   .infoItem {
-    padding: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
   }
 
   .icon {
@@ -131,13 +151,31 @@
     margin-right: 10px;
   }
 
-  .label,
-  .value {
+  .label {
     font-size: 14px;
+  }
+
+  .value {
+    font-size: 16px;
   }
 
   .logoutButton {
     padding: 10px 15px;
     font-size: 14px;
+    border-radius: 16px;
+  }
+
+  .buttonIcon {
+    font-size: 16px;
+    margin-right: 8px;
+  }
+
+  .error {
+    font-size: 12px;
+    margin-top: 15px;
+  }
+
+  .loading {
+    font-size: 16px;
   }
 }

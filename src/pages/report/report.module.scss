@@ -17,6 +17,7 @@
 .zagolovokReport {
   font-size: 24px;
   margin-bottom: 20px;
+  text-align: center;
 }
 
 .inputReportStartDate, .inputReportEndDate, .inputReportType {
@@ -24,8 +25,8 @@
 }
 
 .buttonCreateReport {
-  padding: 10px 20px;
-  background-color: #007bff;
+  padding: 10px 121px;
+  background-color: rgba(63, 131, 144, 0.9490196078);
   color: white;
   border: none;
   cursor: pointer;
@@ -52,21 +53,72 @@
   width: 100%;
   height: 100vh;
   border: none;
+  display: block;
 }
-
 
 .reportsList {
   list-style: none;
   padding: 0;
-  max-height: 340px; /* Примерная высота для 6 элементов, каждый ~40px */
-  overflow-y: scroll; /* Заменяем auto на scroll для постоянного отображения */
-  border: 1px solid #ccc; /* Опционально: для наглядности */
+  max-height: 340px;
+  overflow-y: scroll;
+  border: 1px solid #ccc;
 }
 
 .reportsList li {
   padding: 10px;
   cursor: pointer;
   display: flex;
-  justify-content: space-between; /* Для размещения текста и иконки */
+  justify-content: space-between;
   align-items: center;
+}
+
+@media (max-width: 768px) {
+  .containerReport {
+    flex-direction: column;
+  }
+
+  .leftPanel, .rightPanel {
+    width: 100%;
+    padding: 15px;
+  }
+
+  .leftPanel {
+    border-right: none;
+  }
+
+  .rightPanel {
+    text-align: center;
+  }
+
+  .rightPanel p {
+    font-size: 16px;
+    color: #555;
+  }
+
+  .reportsList {
+    max-height: 300px;
+  }
+
+  .reportsList li {
+    padding: 15px;
+    font-size: 15px;
+  }
+
+  .zagolovokReport, .zagolovokReportsList {
+    font-size: 20px;
+  }
+
+  .buttonCreateReport {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .inputReportStartDate, .inputReportEndDate, .inputReportType {
+    margin-bottom: 10px;
+  }
+
+  .deleteIcon {
+    font-size: 18px;
+    margin-left: 10px;
+  }
 }

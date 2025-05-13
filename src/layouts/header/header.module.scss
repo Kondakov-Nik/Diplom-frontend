@@ -12,6 +12,13 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  flex-direction: row;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
+    padding: 1px;
+  }
 }
 
 .zagolovok {
@@ -19,12 +26,27 @@
   margin-left: 18px;
   font-size: 40px;
   margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    font-size: 28px;
+    margin-left: 0;
+    margin-bottom: 10px;
+    text-align: center;
+    font-weight: 900; // Увеличена жирность шрифта для мобильной версии
+  }
 }
 
 .buttons {
   display: flex;
   gap: 10px;
   margin-left: auto;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    width: 100%;
+    margin-left: 0;
+    gap: 5px;
+  }
 }
 
 .buttonHeader {
@@ -39,7 +61,14 @@
   cursor: pointer;
   align-items: center;
   transition: color 0.3s ease, background-color 0.3s ease;
-  display: flex; 
+  display: flex;
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+    padding: 12px 20px;
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 .buttonHeader:hover {
@@ -51,33 +80,19 @@
   outline: none;
 }
 
-.dropdown {
-  position: relative; /* Для позиционирования меню */
+.personalCabinetText {
+  display: none;
+
+  @media (max-width: 768px) {
+    display: inline;
+  }
 }
 
-.icon {
-  color: #edf1c0;
-  padding: 32px;
-  cursor: pointer;
-  transition: color 0.3s ease, background-color 0.3s ease;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 5%;
-}
-
-.icon:hover {
-  color: #fff;
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.icon:focus {
-  outline: none;
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Класс для сдвига иконок вниз */
 .iconShift {
   margin-bottom: -2px;
-  margin-right: auto;
+  margin-right: 10px;
+
+  @media (max-width: 768px) {
+    margin-right: 8px;
+  }
 }

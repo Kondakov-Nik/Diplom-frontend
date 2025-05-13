@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/hooks';
 import { generateReport, fetchUserReports, fetchReportFile, setSelectedReport, clearSelectedReportUrl, deleteReport } from './reportSlice';
-import { FaTrash } from 'react-icons/fa'; // Импорт иконки урны
+import { FaTrash } from 'react-icons/fa';
 import styles from './report.module.scss';
 
 const Report: React.FC = () => {
@@ -12,6 +12,8 @@ const Report: React.FC = () => {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [reportType, setReportType] = useState<string>('symptoms');
 
+  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
   useEffect(() => {
     dispatch(fetchUserReports());
     return () => {
@@ -20,7 +22,7 @@ const Report: React.FC = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (selectedReportId) {
+    if (selectedReportId && !isMobile()) {
       dispatch(fetchReportFile(selectedReportId));
     }
   }, [selectedReportId, dispatch]);
@@ -48,6 +50,14 @@ const Report: React.FC = () => {
   const handleSelectReport = (reportId: number) => {
     dispatch(clearSelectedReportUrl());
     dispatch(setSelectedReport(reportId));
+    if (isMobile()) {
+      dispatch(fetchReportFile(reportId)).then((action) => {
+        if (fetchReportFile.fulfilled.match(action)) {
+          const url = action.payload as string;
+          window.open(url, '_blank');
+        }
+      });
+    }
   };
 
   const handleDeleteReport = (reportId: number) => {
@@ -124,7 +134,7 @@ const Report: React.FC = () => {
       </div>
 
       <div className={styles.rightPanel}>
-        {selectedReportId && selectedReportUrl ? (
+        {!isMobile() && selectedReportId && selectedReportUrl ? (
           <iframe
             src={selectedReportUrl}
             title="Report Viewer"

@@ -59,7 +59,7 @@
   padding: 8px;
   font-size: 16px;
   color: #fff;
-  background-color: #a594f9;
+  background-color: #5b676f;
   border: none;
   border-radius: 10px;
   cursor: pointer;
@@ -88,14 +88,14 @@
   display: flex;
   align-items: center;
   margin-bottom: 15px;
-  min-height: 30px; /* Фиксируем минимальную высоту для расчётов */
+  min-height: 30px;
 }
 
 .header {
   font-size: 24px;
   font-weight: bold;
   color: #333;
-  flex-shrink: 0; /* Не даём заголовку сжиматься */
+  flex-shrink: 0;
 }
 
 .disclaimer {
@@ -103,9 +103,8 @@
   color: #666;
   font-style: italic;
   line-height: 1.4;
-  flex: 1; /* Дисклеймер занимает оставшееся пространство */
-  text-align: right; /* Выравниваем текст по правому краю */
-  
+  flex: 1;
+  text-align: right;
 }
 
 .conversationContainer {
@@ -233,4 +232,157 @@
 .error {
   color: #dc3545;
   margin: 5px 0;
+}
+
+@media (max-width: 768px) {
+  .chatContainer {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 80%;
+    max-width: 250px;
+    height: 100%;
+    padding: 15px;
+    border-right: none;
+    border-radius: 0;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 1000;
+    background-color: #6da2a9;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  .sidebar.open ~ .overlay {
+    opacity: 1;
+  }
+
+  .chatArea {
+    width: 100%;
+    padding: 15px;
+    flex: 1;
+    position: relative;
+  }
+
+  .sidebarToggleButton {
+    position: fixed;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    z-index: 1100;
+    background-color: #3f8390f2;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .newChatButton {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .sidebarHeader {
+    font-size: 16px;
+  }
+
+  .sectionTitle {
+    font-size: 12px;
+  }
+
+  .promptButton {
+    padding: 6px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
+  .headerContainer {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .header {
+    font-size: 20px;
+  }
+
+  .disclaimer {
+    font-size: 10px;
+    text-align: left;
+    margin-top: 5px;
+  }
+
+  .conversationContainer {
+    height: auto;
+    flex: 1;
+  }
+
+  .messages {
+    max-height: none;
+    height: calc(100vh - 250px);
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+
+  .messageContent {
+    max-width: 85%;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .userIcon,
+  .botIcon {
+    font-size: 20px;
+    margin: 0 8px;
+  }
+
+  .inputContainer {
+    padding: 8px 0;
+    gap: 8px;
+  }
+
+  .input {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .sendButton {
+    padding: 0 15px;
+    font-size: 14px;
+  }
+
+  .sendButton .loading svg {
+    width: 28px;
+    height: 20px;
+  }
+
+  .footer {
+    font-size: 12px;
+  }
 }
