@@ -11,6 +11,7 @@ const Report: React.FC = () => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [reportType, setReportType] = useState<string>('symptoms');
+  const [fileFormat, setFileFormat] = useState<string>('pdf'); // Новый стейт для формата
 
   const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
@@ -43,7 +44,7 @@ const Report: React.FC = () => {
     const formattedStartDate = formatDateToYYYYMMDD(startDate);
     const formattedEndDate = formatDateToYYYYMMDD(endDate);
 
-    dispatch(generateReport({ startDate: formattedStartDate, endDate: formattedEndDate, reportType }))
+    dispatch(generateReport({ startDate: formattedStartDate, endDate: formattedEndDate, reportType, fileFormat }))
       .then(() => dispatch(fetchUserReports()));
   };
 
@@ -103,6 +104,18 @@ const Report: React.FC = () => {
           </select>
         </div>
 
+        <div className={styles.inputReportFormat}>
+          <label htmlFor="fileFormat">Формат:</label>
+          <select
+            id="fileFormat"
+            value={fileFormat}
+            onChange={(e) => setFileFormat(e.target.value)}
+          >
+            <option value="pdf">PDF</option>
+            <option value="excel">Excel</option>
+          </select>
+        </div>
+
         <button
           className={styles.buttonCreateReport}
           onClick={handleDateChange}
@@ -122,7 +135,8 @@ const Report: React.FC = () => {
               className={selectedReportId === report.id ? styles.selectedReport : ''}
             >
               <span onClick={() => handleSelectReport(report.id)}>
-                {report.type === 'symptoms' ? 'Симптомы' : 'Лекарства'} ({report.startDate} - {report.endDate})
+                {report.type === 'symptoms' || report.type === 'symptoms_excel' ? 'Симптомы' : 'Лекарства'} ({report.startDate} - {report.endDate})
+                {report.type === 'symptoms_excel' || report.type === 'medications_excel' ? ' (Excel)' : ' (PDF)'}
               </span>
               <FaTrash
                 className={styles.deleteIcon}
@@ -134,16 +148,16 @@ const Report: React.FC = () => {
       </div>
 
       <div className={styles.rightPanel}>
-        {!isMobile() && selectedReportId && selectedReportUrl ? (
-          <iframe
-            src={selectedReportUrl}
-            title="Report Viewer"
-            className={styles.reportViewer}
-          />
-        ) : (
-          <p>Выберите отчет для просмотра</p>
-        )}
-      </div>
+      {!isMobile() && selectedReportId && selectedReportUrl ? (
+        <iframe
+          src={selectedReportUrl}
+          title="Report Viewer"
+          className={styles.reportViewer}
+        />
+      ) : (
+        <p className={styles.placeholderText}>Выберите PDF отчет для просмотра</p>
+      )}
+    </div>
     </div>
   );
 };

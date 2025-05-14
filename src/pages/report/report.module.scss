@@ -1,75 +1,196 @@
 .containerReport {
   display: flex;
   justify-content: space-between;
+  height: 100vh;
+  background-color: #f5f7fa; /* Светлый фон для всей страницы */
+  padding: 20px;
+  gap: 20px;
 }
 
 .leftPanel {
   width: 30%;
   padding: 20px;
-  border-right: 1px solid #ccc;
+  background-color: #ffffff; /* Белый фон */
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Тень для глубины */
+  overflow-y: auto;
 }
 
 .rightPanel {
   width: 70%;
   padding: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .zagolovokReport {
   font-size: 24px;
+  font-weight: 700;
+  color: #333;
   margin-bottom: 20px;
   text-align: center;
 }
 
-.inputReportStartDate, .inputReportEndDate, .inputReportType {
+.inputReportStartDate,
+.inputReportEndDate,
+.inputReportType,
+.inputReportFormat {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 15px;
+
+  label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 5px;
+  }
+
+  input,
+  select {
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fafafa;
+    transition: all 0.3s ease;
+    outline: none;
+    text-align: center;
+
+
+    &:hover {
+      border-color: #007bff;
+    }
+
+    &:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+    }
+  }
+
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+  }
 }
 
 .buttonCreateReport {
-  padding: 10px 121px;
-  background-color: rgba(63, 131, 144, 0.9490196078);
-  color: white;
+  padding: 10px 80px; /* Уменьшен размер кнопки */
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: rgba(63, 131, 144, 0.9490196078); /* Сохраняем ваш цвет */
   border: none;
+  border-radius: 8px;
   cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  width: 100%; /* Убедимся, что кнопка помещается в контейнер */
+  max-width: 2000px; /* Ограничиваем максимальную ширину */
+  text-align: center;
+
+
+  &:hover {
+    background-color: rgba(45, 105, 115, 0.9490196078); /* Темнее при наведении */
+    transform: scale(1.02);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
 }
 
 .loadingText {
-  color: blue;
+  text-align: center;
+  color: #007bff; /* Обновляем синий для согласованности */
+  font-size: 14px;
+  margin-top: 10px;
 }
 
 .errorText {
-  color: red;
+  text-align: center;
+  color: #ff4d4f; /* Обновляем красный для согласованности */
+  font-size: 14px;
+  margin-top: 10px;
 }
 
 .zagolovokReportsList {
   font-size: 20px;
+  font-weight: 600;
+  color: #333;
   margin-top: 30px;
-}
-
-.selectedReport {
-  background-color: #f0f0f0;
-}
-
-.reportViewer {
-  width: 100%;
-  height: 100vh;
-  border: none;
-  display: block;
+  margin-bottom: 15px;
+  text-align: center;
 }
 
 .reportsList {
   list-style: none;
-  padding: 0;
+  padding: 10px;
   max-height: 340px;
   overflow-y: scroll;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fafafa;
+
+  li {
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #333;
+    background-color: #ffffff;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: background-color 0.3s ease;
+
+    &:hover {
+      background-color: #e6f0ff;
+    }
+
+    &.selectedReport {
+      background-color: #d6eaff;
+      font-weight: 500;
+    }
+  }
 }
 
-.reportsList li {
-  padding: 10px;
+.deleteIcon {
+  color: #ff4d4f;
   cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: #d9363e;
+  }
+}
+
+.reportViewer {
+  width: 100%;
+  height: 100%; /* Изменяем с 100vh на 100% для ограничения рамками контейнера */
+  border: none;
+  border-radius: 8px;
+  display: block;
+  max-height: calc(100% - 20px); /* Учитываем padding контейнера */
+}
+
+.placeholderText {
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #666;
 }
 
 @media (max-width: 768px) {
@@ -121,4 +242,6 @@
     font-size: 18px;
     margin-left: 10px;
   }
+
+  
 }

@@ -7,7 +7,7 @@ interface ReportState {
   reportId: number | null;
   reports: Array<{ id: number, type: string, startDate: string, endDate: string, createdAt: string }>;
   selectedReportId: number | null;
-  selectedReportUrl: string | null; // Добавляем URL для отображения PDF
+  selectedReportUrl: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -27,26 +27,42 @@ interface DecodedToken {
 
 export const generateReport = createAsyncThunk(
   'report/generateReport',
-  async ({ startDate, endDate, reportType }: { startDate: string, endDate: string, reportType: string }, { rejectWithValue }) => {
+  async ({ startDate, endDate, reportType, fileFormat }: { startDate: string, endDate: string, reportType: string, fileFormat: string }, { rejectWithValue }) => {
     try {
-      const url = reportType === 'symptoms'
-        ? 'http://localhost:5001/api/reports/symptoms'
-        : 'http://localhost:5001/api/reports/medications';
-
       const token = Cookies.get('authToken');
       if (!token) throw new Error('Токен не найден в cookies');
 
-      const decoded: DecodedToken = jwtDecode(token);
-      const userId = decoded.id;
-
-      const response = await axios.post(url, { userId, startDate, endDate }, {
+      const url = `http://localhost:5001/api/reports/${reportType}/${fileFormat}`;
+      const response = await axios.post(url, { startDate, endDate }, {
         headers: { Authorization: `Bearer ${token}` },
+        responseType: fileFormat === 'excel' ? 'blob' : 'json',
       });
+
+      console.log('Response headers:', response.headers);
+
+      if (fileFormat === 'excel') {
+        const reportId = response.headers['x-report-id'];
+        if (!reportId) throw new Error('Report ID not found in headers');
+
+        console.log('Received reportId:', reportId);
+
+        // Создаем временный URL для скачивания файла
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `symptom_report_${Date.now()}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        return parseInt(reportId, 10);
+      }
 
       return response.data.reportId;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        return rejectWithValue(error.response.data.message || 'Ошибка при создании отчета');
+        return rejectWithValue(error.response.data?.message || error.message || 'Ошибка при создании отчета');
       }
       return rejectWithValue(error || 'Что-то пошло не так');
     }
@@ -77,7 +93,6 @@ export const fetchUserReports = createAsyncThunk(
   }
 );
 
-// Новый thunk для загрузки PDF-файла
 export const fetchReportFile = createAsyncThunk(
   'report/fetchReportFile',
   async (reportId: number, { rejectWithValue }) => {
@@ -87,10 +102,9 @@ export const fetchReportFile = createAsyncThunk(
 
       const response = await axios.get(`http://localhost:5001/api/reports/${reportId}/download`, {
         headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob', // Получаем файл как Blob
+        responseType: 'blob',
       });
 
-      // Создаем URL для Blob
       const url = URL.createObjectURL(response.data);
       return url;
     } catch (error) {
@@ -102,8 +116,6 @@ export const fetchReportFile = createAsyncThunk(
   }
 );
 
-
-// Асинхронный экшен для удаления отчета
 export const deleteReport = createAsyncThunk(
   'report/deleteReport',
   async (reportId: number, { rejectWithValue }) => {
@@ -115,7 +127,7 @@ export const deleteReport = createAsyncThunk(
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      return reportId; // Возвращаем ID удаленного отчета
+      return reportId;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         return rejectWithValue(error.response.data.message || 'Ошибка при удалении');
@@ -134,7 +146,7 @@ const reportSlice = createSlice({
     },
     clearSelectedReportUrl: (state) => {
       if (state.selectedReportUrl) {
-        URL.revokeObjectURL(state.selectedReportUrl); // Освобождаем память
+        URL.revokeObjectURL(state.selectedReportUrl);
         state.selectedReportUrl = null;
       }
     },
@@ -151,7 +163,7 @@ const reportSlice = createSlice({
       })
       .addCase(generateReport.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.payload ? action.payload.toString() : 'Неизвестная ошибка'; // Преобразуем в строку
       })
       .addCase(fetchUserReports.pending, (state) => {
         state.loading = true;
