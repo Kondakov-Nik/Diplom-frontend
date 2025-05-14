@@ -8,9 +8,9 @@ const Footer: React.FC = () => {
           <p>&copy; 2025 Health Tracker</p>
         </div>
         <div className={s.links}>
-          <a href="/about">О нас</a>
+{/*           <a href="/about">О нас</a>
           <a href="/contact">Контакты</a>
-          <a href="/privacy">Политика конфиденциальности</a>
+          <a href="/privacy">Политика конфиденциальности</a> */}
         </div>
       </div>
     </div>

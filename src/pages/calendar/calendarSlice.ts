@@ -1,28 +1,24 @@
-// calendarSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-// Интерфейс для симптома
+// Интерфейсы (оставляем без изменений)
 export interface Symptom {
   id: number;
   name: string;
 }
 
-// Интерфейс для лекарства
 export interface Medication {
   id: number;
   name: string;
   isCustom: boolean;
 }
 
-// Интерфейс для данных KP-индекса
 export interface KpIndexData {
   date: string;
   kpIndex: number | null;
 }
 
-// Интерфейс для новой записи о симптоме
 interface NewSymptomRecord {
   recordDate: string;
   weight: number;
@@ -31,7 +27,6 @@ interface NewSymptomRecord {
   symptomId: number;
 }
 
-// Интерфейс для новой записи о лекарстве
 interface NewMedicationRecord {
   recordDate: string;
   dosage: number | null;
@@ -40,7 +35,13 @@ interface NewMedicationRecord {
   medicationId: number;
 }
 
-// Интерфейс для обновления записи
+interface NewAnalysisRecord {
+  title: string;
+  recordDate: string;
+  userId: string;
+  file: File;
+}
+
 interface UpdateRecord {
   id: string;
   recordDate?: string;
@@ -52,21 +53,31 @@ interface UpdateRecord {
   medicationId?: number;
 }
 
-// Интерфейс состояния
+export interface Analysis {
+  id: number;
+  title: string;
+  filePath: string;
+  recordDate: string;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CalendarState {
   events: any[];
   symptoms: Symptom[];
   medications: Medication[];
+  analyses: Analysis[];
   kpData: KpIndexData[];
   loading: boolean;
   error: string | null;
 }
 
-// Начальное состояние
 const initialState: CalendarState = {
   events: [],
   symptoms: [],
   medications: [],
+  analyses: [],
   kpData: [],
   loading: false,
   error: null,
@@ -74,7 +85,7 @@ const initialState: CalendarState = {
 
 const token = Cookies.get('authToken');
 
-// Thunk для получения всех записей HealthRecord по userId
+// Существующие thunk (оставляем без изменений)
 export const getAllHealthRecords = createAsyncThunk(
   'calendar/getAllHealthRecords',
   async (userId: string) => {
@@ -85,7 +96,6 @@ export const getAllHealthRecords = createAsyncThunk(
   }
 );
 
-// Thunk для получения всех симптомов по userId
 export const getAllSymptoms = createAsyncThunk(
   'calendar/getAllSymptoms',
   async (userId: string) => {
@@ -96,7 +106,6 @@ export const getAllSymptoms = createAsyncThunk(
   }
 );
 
-// Thunk для получения всех лекарств по userId
 export const getAllMedications = createAsyncThunk(
   'calendar/getAllMedications',
   async (userId: string) => {
@@ -107,7 +116,6 @@ export const getAllMedications = createAsyncThunk(
   }
 );
 
-// Thunk для получения исторических данных KP-индекса
 export const getHistoricalKpData = createAsyncThunk(
   'calendar/getHistoricalKpData',
   async ({ start, end }: { start: string; end: string }) => {
@@ -118,7 +126,6 @@ export const getHistoricalKpData = createAsyncThunk(
   }
 );
 
-// Thunk для получения прогнозных данных KP-индекса
 export const getForecastKpData = createAsyncThunk(
   'calendar/getForecastKpData',
   async () => {
@@ -127,7 +134,6 @@ export const getForecastKpData = createAsyncThunk(
   }
 );
 
-// Thunk для создания записи о симптоме
 export const createSymptomRecord = createAsyncThunk(
   'calendar/createSymptomRecord',
   async (newRecord: NewSymptomRecord) => {
@@ -138,7 +144,6 @@ export const createSymptomRecord = createAsyncThunk(
   }
 );
 
-// Thunk для создания записи о лекарстве
 export const createMedicationRecord = createAsyncThunk(
   'calendar/createMedicationRecord',
   async (newRecord: NewMedicationRecord) => {
@@ -149,7 +154,6 @@ export const createMedicationRecord = createAsyncThunk(
   }
 );
 
-// Thunk для добавления нового симптома
 export const createCustomSymptom = createAsyncThunk(
   'calendar/createCustomSymptom',
   async (newSymptom: { name: string; description: string; isCustom: boolean; userId: string }) => {
@@ -160,7 +164,6 @@ export const createCustomSymptom = createAsyncThunk(
   }
 );
 
-// Thunk для добавления нового лекарства
 export const createCustomMedication = createAsyncThunk(
   'calendar/createCustomMedication',
   async (newMedication: { name: string; description: string; isCustom: boolean; userId: string }) => {
@@ -171,7 +174,6 @@ export const createCustomMedication = createAsyncThunk(
   }
 );
 
-// Thunk для обновления записи
 export const updateRecord = createAsyncThunk(
   'calendar/updateRecord',
   async (updatedRecord: UpdateRecord) => {
@@ -186,7 +188,6 @@ export const updateRecord = createAsyncThunk(
   }
 );
 
-// Thunk для удаления записи
 export const deleteRecord = createAsyncThunk(
   'calendar/deleteRecord',
   async (id: string) => {
@@ -197,19 +198,108 @@ export const deleteRecord = createAsyncThunk(
   }
 );
 
+// Новые thunk с типизацией rejectValue
+export const getUserAnalyses = createAsyncThunk<
+  Analysis[],
+  string,
+  { rejectValue: string | { message: string } }
+>(
+  'calendar/getUserAnalyses',
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const response = await axios.get<Analysis[]>(`http://localhost:5001/api/analysis/user/${userId}`, {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Не удалось загрузить анализы');
+    }
+  }
+);
+
+export const createAnalysis = createAsyncThunk<
+  any,
+  FormData,
+  { rejectValue: string | { message: string } }
+>(
+  'calendar/createAnalysis',
+  async (formData: FormData, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`http://localhost:5001/api/analysis/upload`, formData, {
+        headers: {
+          Authorization: 'Bearer ' + token,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Не удалось создать анализ');
+    }
+  }
+);
+
+export const deleteAnalysis = createAsyncThunk<
+  { id: string; message: string },
+  string,
+  { rejectValue: string | { message: string } }
+>(
+  'calendar/deleteAnalysis',
+  async (analysisId: string, { rejectWithValue }) => {
+    try {
+      const response = await axios.delete(`http://localhost:5001/api/analysis/${analysisId}`, {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      return { id: analysisId, message: response.data.message };
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Не удалось удалить анализ');
+    }
+  }
+);
+
+export const downloadAnalysisFile = createAsyncThunk<
+  { id: string; message: string },
+  string,
+  { rejectValue: string | { message: string } }
+>(
+  'calendar/downloadAnalysisFile',
+  async (analysisId: string, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`http://localhost:5001/api/analysis/file/${analysisId}`, {
+        headers: { Authorization: 'Bearer ' + token },
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `analysis_${analysisId}.jpg`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      return { id: analysisId, message: 'Файл скачан' };
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Не удалось скачать файл');
+    }
+  }
+);
+
 const calendarSlice = createSlice({
   name: 'calendar',
   initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
+      // Существующие обработчики (оставляем без изменений)
       .addCase(getAllHealthRecords.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(getAllHealthRecords.fulfilled, (state, action) => {
         state.loading = false;
-        state.events = action.payload.map((record: any) => {
+        // Сохраняем существующие события типа 'analysis'
+        const existingAnalyses = state.events.filter((event) => event.extendedProps.type === 'analysis');
+        // Обновляем события симптомов и лекарств
+        const newEvents = action.payload.map((record: any) => {
           let title = '';
           const recordDate = new Date(record.recordDate);
           const time = recordDate.toTimeString().slice(0, 5);
@@ -233,6 +323,7 @@ const calendarSlice = createSlice({
             },
           };
         });
+        state.events = [...newEvents, ...existingAnalyses];
       })
       .addCase(getAllHealthRecords.rejected, (state, action) => {
         state.loading = false;
@@ -366,7 +457,6 @@ const calendarSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Не удалось создать лекарство';
       })
-      // Обработка удаления записи
       .addCase(deleteRecord.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -378,6 +468,86 @@ const calendarSlice = createSlice({
       .addCase(deleteRecord.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Не удалось удалить запись';
+      })
+      // Новые обработчики для анализов
+      .addCase(getUserAnalyses.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getUserAnalyses.fulfilled, (state, action) => {
+        state.loading = false;
+        state.analyses = action.payload;
+        // Фильтруем существующие события, чтобы избежать дублирования анализов
+        state.events = state.events.filter((event) => event.extendedProps.type !== 'analysis');
+        // Добавляем новые анализы
+        state.events = [
+          ...state.events,
+          ...action.payload.map((analysis: Analysis) => ({
+            id: String(analysis.id),
+            title: `Анализ: ${analysis.title}`,
+            start: analysis.recordDate,
+            allDay: true,
+            extendedProps: {
+              type: 'analysis',
+              filePath: analysis.filePath,
+            },
+          })),
+        ];
+      })
+      .addCase(getUserAnalyses.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as { message: string })?.message || 'Не удалось загрузить анализы';
+      })
+      .addCase(createAnalysis.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createAnalysis.fulfilled, (state, action) => {
+        state.loading = false;
+        state.analyses.push(action.payload.analysis);
+        // Удаляем старые анализы из событий, чтобы избежать дублирования
+        state.events = state.events.filter((event) => event.extendedProps.type !== 'analysis');
+        // Добавляем все анализы заново, включая новый
+        state.analyses.forEach((analysis) => {
+          state.events.push({
+            id: String(analysis.id),
+            title: `Анализ: ${analysis.title}`,
+            start: analysis.recordDate,
+            allDay: true,
+            extendedProps: {
+              type: 'analysis',
+              filePath: analysis.filePath,
+            },
+          });
+        });
+      })
+      .addCase(createAnalysis.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as { message: string })?.message || 'Не удалось создать анализ';
+      })
+      .addCase(deleteAnalysis.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteAnalysis.fulfilled, (state, action) => {
+        state.loading = false;
+        state.analyses = state.analyses.filter((analysis) => analysis.id !== parseInt(action.payload.id));
+        state.events = state.events.filter((event) => event.id !== parseInt(action.payload.id));
+      })
+      .addCase(deleteAnalysis.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as { message: string })?.message || 'Не удалось удалить анализ';
+      })
+      .addCase(downloadAnalysisFile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(downloadAnalysisFile.fulfilled, (state, action) => {
+        state.loading = false;
+      })
+      .addCase(downloadAnalysisFile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as { message: string })?.message || 'Не удалось скачать файл';
       });
   },
 });

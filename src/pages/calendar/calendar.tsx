@@ -8,7 +8,7 @@ import { DateSelectArg, EventClickArg, EventApi, DatesSetArg } from '@fullcalend
 import Modal from 'react-modal';
 import ruLocale from '@fullcalendar/core/locales/ru';
 import Select, { MultiValue, ActionMeta } from 'react-select';
-import { getAllHealthRecords, getAllSymptoms, getAllMedications, createSymptomRecord, createMedicationRecord, updateRecord, createCustomSymptom, createCustomMedication, getHistoricalKpData, getForecastKpData, deleteRecord, CalendarState, Symptom, Medication } from './calendarSlice';
+import { getAllHealthRecords, getAllSymptoms, getAllMedications, getUserAnalyses, createSymptomRecord, createMedicationRecord, updateRecord, createCustomSymptom, createCustomMedication, getHistoricalKpData, getForecastKpData, deleteRecord, createAnalysis, deleteAnalysis, CalendarState, Symptom, Medication } from './calendarSlice';
 import { createEventId } from './event-utils';
 import './calendar.module.scss';
 import Cookies from 'js-cookie';
@@ -28,44 +28,47 @@ const Calendar: React.FC = () => {
   const medications = useAppSelector((state: { calendarSlice: CalendarState }) => state.calendarSlice.medications);
   const kpData = useAppSelector((state: { calendarSlice: CalendarState }) => state.calendarSlice.kpData);
 
-  const calendarRef = useRef<FullCalendar>(null); // Добавляем ref для FullCalendar
+  const calendarRef = useRef<FullCalendar>(null);
 
-  const [addingType, setAddingType] = React.useState<'symptom' | 'medication' | null>(null);
-  const [weekendsVisible] = React.useState(true);
-  const [, setCurrentEvents] = React.useState<EventApi[]>([]);
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [isAddNewModalOpen, setIsAddNewModalOpen] = React.useState(false);
-  const [newSymptomName, setNewSymptomName] = React.useState<string>('');
-  const [isSymptomModalOpen, setIsSymptomModalOpen] = React.useState(false);
-  const [isMedicationModalOpen, setIsMedicationModalOpen] = React.useState(false);
-  const [isEventModalOpen, setIsEventModalOpen] = React.useState(false);
-  const [isUpdateSymptomEventModalOpen, setIsUpdateSymptomEventModalOpen] = React.useState(false);
-  const [isUpdateMedicalEventModalOpen, setIsUpdateMedicalEventModalOpen] = React.useState(false);
-  const [selectedDate, setSelectedDate] = React.useState<DateSelectArg | null>(null);
-  const [selectedKpIndex, setSelectedKpIndex] = React.useState<number | null>(null);
-  const [, setSelectedType] = React.useState<'symptom' | 'medication' | null>(null);
-  const [selectedSymptom, setSelectedSymptom] = React.useState<number | null>(null);
-  const [selectedMedication, setSelectedMedication] = React.useState<number | null>(null);
-  const [severity, setSeverity] = React.useState<number | null>(null);
-  const [quantity, setQuantity] = React.useState<number | null>(null);
-  const [dosage, setDosage] = React.useState<number | null>(null);
-  const [symptomTime, setSymptomTime] = React.useState<string>(() => {
+  const [addingType, setAddingType] = useState<'symptom' | 'medication' | null>(null);
+  const [weekendsVisible] = useState(true);
+  const [, setCurrentEvents] = useState<EventApi[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddNewModalOpen, setIsAddNewModalOpen] = useState(false);
+  const [newSymptomName, setNewSymptomName] = useState<string>('');
+  const [isSymptomModalOpen, setIsSymptomModalOpen] = useState(false);
+  const [isMedicationModalOpen, setIsMedicationModalOpen] = useState(false);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isUpdateSymptomEventModalOpen, setIsUpdateSymptomEventModalOpen] = useState(false);
+  const [isUpdateMedicalEventModalOpen, setIsUpdateMedicalEventModalOpen] = useState(false);
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<DateSelectArg | null>(null);
+  const [selectedKpIndex, setSelectedKpIndex] = useState<number | null>(null);
+  const [, setSelectedType] = useState<'symptom' | 'medication' | null>(null);
+  const [selectedSymptom, setSelectedSymptom] = useState<number | null>(null);
+  const [selectedMedication, setSelectedMedication] = useState<number | null>(null);
+  const [severity, setSeverity] = useState<number | null>(null);
+  const [quantity, setQuantity] = useState<number | null>(null);
+  const [dosage, setDosage] = useState<number | null>(null);
+  const [symptomTime, setSymptomTime] = useState<string>(() => {
     const now = new Date();
     return now.toTimeString().slice(0, 5);
   });
-  const [medicationTime, setMedicationTime] = React.useState<string>(() => {
+  const [medicationTime, setMedicationTime] = useState<string>(() => {
     const now = new Date();
     return now.toTimeString().slice(0, 5);
   });
-  const [selectedEvent, setSelectedEvent] = React.useState<EventApi | null>(null); // Изменяем тип на EventApi
+  const [selectedEvent, setSelectedEvent] = useState<EventApi | null>(null);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [analysisTitle, setAnalysisTitle] = useState<string>('');
+  const [analysisFile, setAnalysisFile] = useState<File | null>(null);
 
-  const [filterType, setFilterType] = useState({ symptoms: false, medications: false });
+  const [filterType, setFilterType] = useState({ symptoms: false, medications: false, analyses: false });
   const [selectedSymptoms, setSelectedSymptoms] = useState<Option[]>([]);
   const [selectedMedications, setSelectedMedications] = useState<Option[]>([]);
   const [filteredEvents, setFilteredEvents] = useState(events);
 
-  const [tempFilterType, setTempFilterType] = useState({ symptoms: false, medications: false });
+  const [tempFilterType, setTempFilterType] = useState({ symptoms: false, medications: false, analyses: false });
   const [tempSelectedSymptoms, setTempSelectedSymptoms] = useState<Option[]>([]);
   const [tempSelectedMedications, setTempSelectedMedications] = useState<Option[]>([]);
 
@@ -74,9 +77,20 @@ const Calendar: React.FC = () => {
     if (token) {
       const decoded: any = jwtDecode(token);
       const userId = decoded.id;
-      dispatch(getAllHealthRecords(userId));
-      dispatch(getAllSymptoms(userId));
-      dispatch(getAllMedications(userId));
+  
+      Promise.all([
+        dispatch(getAllSymptoms(userId)).unwrap(),
+        dispatch(getAllMedications(userId)).unwrap(),
+      ])
+        .then(() => {
+          return dispatch(getAllHealthRecords(userId)).unwrap();
+        })
+        .then(() => {
+          return dispatch(getUserAnalyses(userId)).unwrap();
+        })
+        .catch((error) => {
+          console.error('Ошибка при загрузке данных:', error);
+        });
     }
   }, [dispatch]);
 
@@ -117,27 +131,21 @@ const Calendar: React.FC = () => {
     value: medication.id,
   }));
 
-  const filterEvents = (allEvents: any[], type: { symptoms: boolean; medications: boolean }, symptoms: Option[], medications: Option[]) => {
+  const filterEvents = (allEvents: any[], type: { symptoms: boolean; medications: boolean; analyses: boolean }, symptoms: Option[], medications: Option[]) => {
     let filtered = [...allEvents];
-    const isTypeFilterActive = type.symptoms || type.medications;
+    const isTypeFilterActive = type.symptoms || type.medications || type.analyses;
     const isSymptomFilterActive = symptoms.length > 0;
     const isMedicationFilterActive = medications.length > 0;
-    const isAnyFilterActive = isTypeFilterActive || isSymptomFilterActive || isMedicationFilterActive;
 
-    if (!isAnyFilterActive) {
-      return allEvents;
-    }
-
-    if (isTypeFilterActive && !(type.symptoms && type.medications)) {
+    if (isTypeFilterActive) {
       filtered = filtered.filter((event) => {
-        if (type.symptoms && !type.medications) {
-          return event.extendedProps.type === 'symptom';
-        }
-        if (!type.symptoms && type.medications) {
-          return event.extendedProps.type === 'medication';
-        }
-        return true;
+        if (type.symptoms && event.extendedProps.type === 'symptom') return true;
+        if (type.medications && event.extendedProps.type === 'medication') return true;
+        if (type.analyses && event.extendedProps.type === 'analysis') return true;
+        return false;
       });
+    } else {
+      return allEvents;
     }
 
     if (isSymptomFilterActive || isMedicationFilterActive) {
@@ -145,19 +153,13 @@ const Calendar: React.FC = () => {
       const medicationIds = medications.map((medication) => medication.value);
 
       filtered = filtered.filter((event) => {
-        const matchesSymptom =
-          event.extendedProps.type === 'symptom' &&
-          isSymptomFilterActive &&
-          event.extendedProps.symptomId !== undefined &&
-          symptomIds.includes(event.extendedProps.symptomId);
-
-        const matchesMedication =
-          event.extendedProps.type === 'medication' &&
-          isMedicationFilterActive &&
-          event.extendedProps.medicationId !== undefined &&
-          medicationIds.includes(event.extendedProps.medicationId);
-
-        return matchesSymptom || matchesMedication;
+        if (event.extendedProps.type === 'symptom' && isSymptomFilterActive) {
+          return event.extendedProps.symptomId !== undefined && symptomIds.includes(event.extendedProps.symptomId);
+        }
+        if (event.extendedProps.type === 'medication' && isMedicationFilterActive) {
+          return event.extendedProps.medicationId !== undefined && medicationIds.includes(event.extendedProps.medicationId);
+        }
+        return event.extendedProps.type === 'analysis';
       });
     }
 
@@ -175,7 +177,7 @@ const Calendar: React.FC = () => {
     setIsFilterPanelOpen(!isFilterPanelOpen);
   };
 
-  const handleFilterTypeChange = (type: 'symptoms' | 'medications') => {
+  const handleFilterTypeChange = (type: 'symptoms' | 'medications' | 'analyses') => {
     setTempFilterType((prev) => ({
       ...prev,
       [type]: !prev[type],
@@ -191,10 +193,10 @@ const Calendar: React.FC = () => {
   };
 
   const handleResetFilters = () => {
-    setTempFilterType({ symptoms: false, medications: false });
+    setTempFilterType({ symptoms: false, medications: false, analyses: false });
     setTempSelectedSymptoms([]);
     setTempSelectedMedications([]);
-    setFilterType({ symptoms: false, medications: false });
+    setFilterType({ symptoms: false, medications: false, analyses: false });
     setSelectedSymptoms([]);
     setSelectedMedications([]);
     setFilteredEvents(events);
@@ -211,7 +213,6 @@ const Calendar: React.FC = () => {
   };
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
-    console.log('handleDateSelect вызвана:', selectInfo.startStr); // Отладка
     setSelectedDate(selectInfo);
   
     const selectedDateStr = selectInfo.startStr.split('T')[0];
@@ -232,18 +233,16 @@ const Calendar: React.FC = () => {
   };
 
   const handleDateClick = (clickInfo: DateClickArg) => {
-    console.log('handleDateClick вызвана:', clickInfo.dateStr); // Отладка
     const selectInfo: DateSelectArg = {
       start: clickInfo.date,
-      end: new Date(clickInfo.date.getTime() + 24 * 60 * 60 * 1000), // Следующий день
+      end: new Date(clickInfo.date.getTime() + 24 * 60 * 60 * 1000),
       startStr: clickInfo.dateStr,
       endStr: new Date(clickInfo.date.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       allDay: true,
       view: clickInfo.view,
       jsEvent: clickInfo.jsEvent,
-
     };
-    handleDateSelect(selectInfo); // Вызываем handleDateSelect с преобразованным объектом
+    handleDateSelect(selectInfo);
   };
 
   const handleTypeSelect = (type: 'symptom' | 'medication') => {
@@ -306,6 +305,12 @@ const Calendar: React.FC = () => {
     setMedicationTime(new Date().toTimeString().slice(0, 5));
   };
 
+  const closeAnalysisModal = () => {
+    setIsAnalysisModalOpen(false);
+    setAnalysisTitle('');
+    setAnalysisFile(null);
+  };
+
   const handleSymptomChange = (selectedOption: any) => {
     setSelectedSymptom(selectedOption ? selectedOption.value : null);
   };
@@ -338,6 +343,15 @@ const Calendar: React.FC = () => {
     setMedicationTime(event.target.value);
   };
 
+  const handleAnalysisTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setAnalysisTitle(event.target.value);
+  };
+
+  const handleAnalysisFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setAnalysisFile(file);
+  };
+
   const handleSaveSymptom = async (event: React.FormEvent) => {
     event.preventDefault();
     if (selectedDate && selectedSymptom !== null && severity !== null && userId) {
@@ -352,7 +366,7 @@ const Calendar: React.FC = () => {
         allDay: false,
       };
       calendarApi.addEvent(newEvent);
-
+  
       const newRecord = {
         recordDate: recordDateWithTime,
         weight: severity,
@@ -361,7 +375,10 @@ const Calendar: React.FC = () => {
         symptomId: selectedSymptom,
       };
       await dispatch(createSymptomRecord(newRecord)).unwrap();
-      dispatch(getAllHealthRecords(userId));
+      await Promise.all([
+        dispatch(getAllHealthRecords(userId)).unwrap(),
+        dispatch(getUserAnalyses(userId)).unwrap(),
+      ]);
       closeSecondModal();
     }
   };
@@ -388,7 +405,7 @@ const Calendar: React.FC = () => {
         },
       };
       calendarApi.addEvent(newEvent);
-
+  
       const newRecord = {
         recordDate: recordDateWithTime,
         dosage: dosage !== null ? dosage : null,
@@ -397,8 +414,39 @@ const Calendar: React.FC = () => {
         medicationId: selectedMedication,
       };
       await dispatch(createMedicationRecord(newRecord)).unwrap();
-      dispatch(getAllHealthRecords(userId));
+      await Promise.all([
+        dispatch(getAllHealthRecords(userId)).unwrap(),
+        dispatch(getUserAnalyses(userId)).unwrap(),
+      ]);
       closeMedicationModal();
+    }
+  };
+
+  const handleSaveAnalysis = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (selectedDate && analysisTitle && analysisFile && userId) {
+      const formData = new FormData();
+      formData.append('title', analysisTitle);
+      formData.append('recordDate', selectedDate.startStr.split('T')[0]);
+      formData.append('userId', userId);
+      formData.append('file', analysisFile);
+
+      const calendarApi = selectedDate.view.calendar;
+      const newEvent = {
+        id: createEventId(),
+        title: `Анализ: ${analysisTitle}`,
+        start: selectedDate.startStr,
+        end: selectedDate.endStr,
+        allDay: true,
+        extendedProps: {
+          type: 'analysis',
+        },
+      };
+      calendarApi.addEvent(newEvent);
+
+      await dispatch(createAnalysis(formData)).unwrap();
+      await dispatch(getUserAnalyses(userId)).unwrap();
+      closeAnalysisModal();
     }
   };
 
@@ -434,20 +482,17 @@ const Calendar: React.FC = () => {
   const handleDeleteEvent = async () => {
     if (selectedEvent && userId) {
       try {
-        // Удаляем событие из базы данных через API
-        await dispatch(deleteRecord(selectedEvent.id)).unwrap();
-
-        // Удаляем событие из FullCalendar
+        if (selectedEvent.extendedProps.type === 'analysis') {
+          await dispatch(deleteAnalysis(selectedEvent.id)).unwrap();
+        } else {
+          await dispatch(deleteRecord(selectedEvent.id)).unwrap();
+        }
         const calendarApi = calendarRef.current?.getApi();
         const eventToRemove = calendarApi?.getEventById(selectedEvent.id);
         if (eventToRemove) {
-          eventToRemove.remove(); // Удаляем событие из календаря
+          eventToRemove.remove();
         }
-
-        // Обновляем состояние filteredEvents
         setFilteredEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEvent.id));
-
-        // Закрываем модальное окно
         closeEventModal();
       } catch (error) {
         console.error('Ошибка при удалении события:', error);
@@ -528,7 +573,7 @@ const Calendar: React.FC = () => {
     <div className="demo-app">
       <div className="demo-app-main">
         <FullCalendar
-          ref={calendarRef} // Привязываем ref к FullCalendar
+          ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           headerToolbar={{
             left: 'prev,next today',
@@ -560,9 +605,7 @@ const Calendar: React.FC = () => {
             hour12: false,
           }}
           datesSet={handleDatesSet}
-
-          dateClick={handleDateClick} // Добавлено для одиночного касания
-          
+          dateClick={handleDateClick}
         />
 
         {isFilterPanelOpen && (
@@ -581,7 +624,6 @@ const Calendar: React.FC = () => {
             }}
           >
             <h4 style={{ margin: '0 0 10px 0', fontSize: '16px', fontWeight: 'bold' }}>Фильтры</h4>
-
             <div style={{ marginBottom: '15px' }}>
               <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Тип</label>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
@@ -593,7 +635,7 @@ const Calendar: React.FC = () => {
                 />
                 <span>Симптомы</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
                 <input
                   type="checkbox"
                   checked={tempFilterType.medications}
@@ -602,8 +644,16 @@ const Calendar: React.FC = () => {
                 />
                 <span>Лекарства</span>
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+                <input
+                  type="checkbox"
+                  checked={tempFilterType.analyses}
+                  onChange={() => handleFilterTypeChange('analyses')}
+                  style={{ marginRight: '5px' }}
+                />
+                <span>Анализы</span>
+              </div>
             </div>
-
             <div style={{ marginBottom: '15px' }}>
               <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Симптом</label>
               <Select
@@ -615,7 +665,6 @@ const Calendar: React.FC = () => {
                 isSearchable
               />
             </div>
-
             <div style={{ marginBottom: '15px' }}>
               <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Лекарство</label>
               <Select
@@ -627,7 +676,6 @@ const Calendar: React.FC = () => {
                 isSearchable
               />
             </div>
-
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <button
                 onClick={handleResetFilters}
@@ -660,176 +708,184 @@ const Calendar: React.FC = () => {
       </div>
 
       <Modal
-      isOpen={isModalOpen}
-      onRequestClose={closeModal}
-      contentLabel="Select Type Modal"
-      style={{
-        content: {
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
-          padding: '20px',
-          width: '400px',
-          maxWidth: '90%',
-          minHeight: 'auto', // Подстраиваем высоту под содержимое
-          textAlign: 'center',
-          // Убираем position: absolute и связанные свойства
-          position: 'static', // По умолчанию, чтобы flex в overlay работал
-        },
-        overlay: {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 9999,
-        },
-      }}
-    >
-      <h2
+        isOpen={isModalOpen}
+        onRequestClose={closeModal}
+        contentLabel="Select Type Modal"
         style={{
-          fontSize: '24px',
-          fontWeight: 800,
-          color: '#333',
-          marginBottom: '15px',
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
+          content: {
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+            padding: '20px',
+            width: '400px',
+            maxWidth: '90%',
+            minHeight: 'auto',
+            textAlign: 'center',
+            position: 'static',
+          },
+          overlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+          },
         }}
       >
-        Я хочу отметить:
-      </h2>
-      {selectedDate && (
-        <p
+        <h2
           style={{
-            fontSize: '16px',
-            color: '#555',
+            fontSize: '24px',
+            fontWeight: 800,
+            color: '#333',
+            marginBottom: '15px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}
+        >
+          Я хочу отметить:
+        </h2>
+        {selectedDate && (
+          <p
+            style={{
+              fontSize: '16px',
+              color: '#555',
+              marginBottom: '15px',
+            }}
+          >
+            <strong style={{ color: '#444', fontWeight: 600 }}>Дата:</strong>{' '}
+            {new Date(selectedDate.startStr).toLocaleDateString('ru-RU')}
+            <br />
+            <strong style={{ color: '#444', fontWeight: 600 }}>KP-индекс:</strong>{' '}
+            {selectedKpIndex !== null ? (
+              <span style={{ color: getKpColor(selectedKpIndex) }}>{selectedKpIndex}</span>
+            ) : (
+              <span>Нет данных</span>
+            )}
+          </p>
+        )}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '15px',
             marginBottom: '15px',
           }}
         >
-          <strong
+          <button
             style={{
-              color: '#444',
-              fontWeight: 600,
+              borderRadius: '20px',
+              border: '1px solid #6eb2bada',
+              backgroundColor: '#0b7c89ae',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              padding: '12px 45px',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'transform 80ms ease-in',
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0b7c89';
+              e.currentTarget.style.transform = 'translateY(-3px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#0b7c89ae';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+            onClick={() => handleTypeSelect('symptom')}
           >
-            Дата:
-          </strong>{' '}
-          {new Date(selectedDate.startStr).toLocaleDateString('ru-RU')}
-          <br />
-          <strong
+            Симптом
+          </button>
+          <button
             style={{
-              color: '#444',
-              fontWeight: 600,
+              borderRadius: '20px',
+              border: '1px solid #6eb2bada',
+              backgroundColor: '#0b7c89ae',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              padding: '12px 45px',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'transform 80ms ease-in',
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0b7c89';
+              e.currentTarget.style.transform = 'translateY(-3px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#0b7c89ae';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+            onClick={() => handleTypeSelect('medication')}
           >
-            KP-индекс:
-          </strong>{' '}
-          {selectedKpIndex !== null ? (
-            <span style={{ color: getKpColor(selectedKpIndex) }}>{selectedKpIndex}</span>
-          ) : (
-            <span>Нет данных</span>
-          )}
-        </p>
-      )}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '15px',
-          marginBottom: '15px',
-        }}
-      >
-        <button
-          style={{
-            borderRadius: '20px',
-            border: '1px solid #6eb2bada',
-            backgroundColor: '#0b7c89ae',
-            color: '#ffffff',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            padding: '12px 45px',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            cursor: 'pointer',
-            transition: 'transform 80ms ease-in',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#0b7c89';
-            e.currentTarget.style.transform = 'translateY(-3px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#0b7c89ae';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
-          onClick={() => handleTypeSelect('symptom')}
-        >
-          Симптом
-        </button>
-        <button
-          style={{
-            borderRadius: '20px',
-            border: '1px solid #6eb2bada',
-            backgroundColor: '#0b7c89ae',
-            color: '#ffffff',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            padding: '12px 45px',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            cursor: 'pointer',
-            transition: 'transform 80ms ease-in',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#0b7c89';
-            e.currentTarget.style.transform = 'translateY(-3px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#0b7c89ae';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
-          onClick={() => handleTypeSelect('medication')}
-        >
-          Лекарство
-        </button>
-      </div>
-      <div>
-        <button
-          style={{
-            borderRadius: '20px',
-            border: '1px solid #ff4b2b',
-            backgroundColor: '#ff4b2b',
-            color: '#ffffff',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            padding: '12px 45px',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            cursor: 'pointer',
-            transition: 'transform 80ms ease-in',
-            width: '100%',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#e6391a';
-            e.currentTarget.style.transform = 'translateY(-3px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#ff4b2b';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
-          type="button"
-          onClick={closeModal}
-        >
-          Закрыть
-        </button>
-      </div>
+            Лекарство
+          </button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <button
+            style={{
+              borderRadius: '20px',
+              border: '1px solid #6eb2bada',
+              backgroundColor: '#0b7c89ae',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              padding: '12px 45px',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'transform 80ms ease-in',
+              width: '100%',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0b7c89';
+              e.currentTarget.style.transform = 'translateY(-3px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#0b7c89ae';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+            onClick={() => setIsAnalysisModalOpen(true)}
+          >
+            Анализ
+          </button>
+          <button
+            style={{
+              borderRadius: '20px',
+              border: '1px solid #ff4b2b',
+              backgroundColor: '#ff4b2b',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              padding: '12px 45px',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'transform 80ms ease-in',
+              width: '100%',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#e6391a';
+              e.currentTarget.style.transform = 'translateY(-3px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#ff4b2b';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+            onClick={closeModal}
+          >
+            Закрыть
+          </button>
+        </div>
       </Modal>
-
-
-
 
       <Modal
         isOpen={isSymptomModalOpen}
@@ -844,9 +900,9 @@ const Calendar: React.FC = () => {
             padding: '20px',
             width: '400px',
             maxWidth: '90%',
-            minHeight: 'auto', // Подстраиваем высоту под содержимое
+            minHeight: 'auto',
             textAlign: 'center',
-            position: 'static', // Убираем position: absolute, используем flex в overlay
+            position: 'static',
           },
           overlay: {
             position: 'fixed',
@@ -875,21 +931,8 @@ const Calendar: React.FC = () => {
           Введите данные для симптома
         </h2>
         <form onSubmit={handleSaveSymptom}>
-          <div
-            style={{
-              marginBottom: '15px',
-              textAlign: 'left',
-            }}
-          >
-            <label
-              style={{
-                fontSize: '16px',
-                fontWeight: 600,
-                color: '#444',
-                display: 'block',
-                marginBottom: '5px',
-              }}
-            >
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
               Название симптома:
             </label>
             <Select
@@ -914,73 +957,28 @@ const Calendar: React.FC = () => {
               }}
             />
             <p
-              style={{
-                color: 'blue',
-                cursor: 'pointer',
-                textDecoration: 'underline',
-                marginTop: '5px',
-                fontSize: '14px',
-              }}
+              style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px', fontSize: '14px' }}
               onClick={() => openAddNewModal('symptom')}
             >
               Не нашли нужного? Добавить свой
             </p>
           </div>
-          <div
-            style={{
-              marginBottom: '15px',
-              textAlign: 'left',
-            }}
-          >
-            <label
-              style={{
-                fontSize: '16px',
-                fontWeight: 600,
-                color: '#444',
-                display: 'block',
-                marginBottom: '5px',
-              }}
-            >
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
               Время симптома:
             </label>
             <input
               type="time"
               value={symptomTime}
               onChange={handleSymptomTimeChange}
-              style={{
-                width: '100%',
-                padding: '12px 15px',
-                borderRadius: '7px',
-                border: 'none',
-                backgroundColor: '#eee',
-                fontSize: '16px',
-              }}
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
             />
           </div>
-          <div
-            style={{
-              marginBottom: '15px',
-              textAlign: 'left',
-            }}
-          >
-            <label
-              style={{
-                fontSize: '16px',
-                fontWeight: 600,
-                color: '#444',
-                display: 'block',
-                marginBottom: '5px',
-              }}
-            >
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
               Тяжесть симптома:
             </label>
-            <div
-              style={{
-                display: 'flex',
-                gap: '10px',
-                justifyContent: 'center',
-              }}
-            >
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               {[1, 2, 3, 4, 5].map((sev) => (
                 <button
                   type="button"
@@ -999,14 +997,10 @@ const Calendar: React.FC = () => {
                     transition: 'background-color 0.3s ease',
                   }}
                   onMouseEnter={(e) => {
-                    if (severity !== sev) {
-                      e.currentTarget.style.backgroundColor = '#ddd';
-                    }
+                    if (severity !== sev) e.currentTarget.style.backgroundColor = '#ddd';
                   }}
                   onMouseLeave={(e) => {
-                    if (severity !== sev) {
-                      e.currentTarget.style.backgroundColor = '#eee';
-                    }
+                    if (severity !== sev) e.currentTarget.style.backgroundColor = '#eee';
                   }}
                 >
                   {sev}
@@ -1014,13 +1008,7 @@ const Calendar: React.FC = () => {
               ))}
             </div>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '15px',
-            }}
-          >
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
             <button
               style={{
                 borderRadius: '20px',
@@ -1125,1193 +1113,1100 @@ const Calendar: React.FC = () => {
         </div>
       </Modal>
 
-
-
-
-
       <Modal
-      isOpen={isMedicationModalOpen}
-      onRequestClose={closeMedicationModal}
-      contentLabel="Input Medication Data Modal"
-      style={{
-        content: {
-          fontFamily: "'Montserrat', sans-serif",
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
-          padding: '20px',
-          width: '400px',
-          maxWidth: '90%',
-          minHeight: 'auto', // Подстраиваем высоту под содержимое
-          textAlign: 'center',
-          position: 'static', // Убираем position: absolute, используем flex в overlay
-        },
-        overlay: {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 9999,
-        },
-      }}
-    >
-      <h2
+        isOpen={isMedicationModalOpen}
+        onRequestClose={closeMedicationModal}
+        contentLabel="Input Medication Data Modal"
         style={{
-          fontSize: '24px',
-          fontWeight: 800,
-          color: '#333',
-          marginBottom: '15px',
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-        }}
-      >
-        Введите данные для лекарства
-      </h2>
-      <form onSubmit={handleSaveMedication}>
-        <div
-          style={{
-            marginBottom: '15px',
-            textAlign: 'left',
-          }}
-        >
-          <label
-            style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: '#444',
-              display: 'block',
-              marginBottom: '5px',
-            }}
-          >
-            Название лекарства:
-          </label>
-          <Select
-            value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
-            onChange={handleMedicationChange}
-            options={medicationOptions}
-            placeholder="Выберите лекарство"
-            isSearchable
-            styles={{
-              control: (provided) => ({
-                ...provided,
-                borderRadius: '7px',
-                border: 'none',
-                backgroundColor: '#eee',
-                padding: '5px',
-                fontSize: '16px',
-              }),
-              menu: (provided) => ({
-                ...provided,
-                borderRadius: '7px',
-              }),
-            }}
-          />
-          <p
-            style={{
-              color: 'blue',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              marginTop: '5px',
-              fontSize: '14px',
-            }}
-            onClick={() => openAddNewModal('medication')}
-          >
-            Не нашли нужного? Добавить своё
-          </p>
-        </div>
-        <div
-          style={{
-            marginBottom: '15px',
-            textAlign: 'left',
-          }}
-        >
-          <label
-            style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: '#444',
-              display: 'block',
-              marginBottom: '5px',
-            }}
-          >
-            Время приема:
-          </label>
-          <input
-            type="time"
-            value={medicationTime}
-            onChange={handleMedicationTimeChange}
-            style={{
-              width: '100%',
-              padding: '12px 15px',
-              borderRadius: '7px',
-              border: 'none',
-              backgroundColor: '#eee',
-              fontSize: '16px',
-            }}
-          />
-        </div>
-        <div
-          style={{
-            marginBottom: '15px',
-            textAlign: 'left',
-          }}
-        >
-          <label
-            style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: '#444',
-              display: 'block',
-              marginBottom: '5px',
-            }}
-          >
-            Количество (шт) (необязательно):
-          </label>
-          <input
-            type="number"
-            value={quantity ?? ''}
-            onChange={handleQuantityChange}
-            placeholder="Количество"
-            min="0"
-            style={{
-              width: '100%',
-              padding: '12px 15px',
-              borderRadius: '7px',
-              border: 'none',
-              backgroundColor: '#eee',
-              fontSize: '16px',
-            }}
-          />
-        </div>
-        <div
-          style={{
-            marginBottom: '15px',
-            textAlign: 'left',
-          }}
-        >
-          <label
-            style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: '#444',
-              display: 'block',
-              marginBottom: '5px',
-            }}
-          >
-            Дозировка (мг) (необязательно):
-          </label>
-          <input
-            type="number"
-            value={dosage ?? ''}
-            onChange={handleDosageChange}
-            placeholder="Дозировка"
-            min="0"
-            style={{
-              width: '100%',
-              padding: '12px 15px',
-              borderRadius: '7px',
-              border: 'none',
-              backgroundColor: '#eee',
-              fontSize: '16px',
-            }}
-          />
-        </div>
-        <div
-          style={{
+          content: {
+            fontFamily: "'Montserrat', sans-serif",
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+            padding: '20px',
+            width: '400px',
+            maxWidth: '90%',
+            minHeight: 'auto',
+            textAlign: 'center',
+            position: 'static',
+          },
+          overlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             display: 'flex',
             justifyContent: 'center',
-            gap: '15px',
-          }}
-        >
-          <button
-            style={{
-              borderRadius: '20px',
-              border: '1px solid #ff4b2b',
-              backgroundColor: '#ff4b2b',
-              color: '#ffffff',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              padding: '12px 45px',
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              transition: 'transform 80ms ease-in',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#e6391a';
-              e.currentTarget.style.transform = 'translateY(-3px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#ff4b2b';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-            type="button"
-            onClick={closeMedicationModal}
-          >
-            Закрыть
-          </button>
-          <button
-            style={{
-              borderRadius: '20px',
-              border: '1px solid #6eb2bada',
-              backgroundColor: '#0b7c89ae',
-              color: '#ffffff',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              padding: '12px 45px',
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              transition: 'transform 80ms ease-in',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#0b7c89';
-              e.currentTarget.style.transform = 'translateY(-3px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#0b7c89ae';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-            type="submit"
-          >
-            Сохранить
-          </button>
-        </div>
-      </form>
-    </Modal>
-
-    <Modal
-    isOpen={isEventModalOpen}
-    onRequestClose={closeEventModal}
-    contentLabel="Event Details Modal"
-    style={{
-      content: {
-        fontFamily: "'Montserrat', sans-serif",
-        backgroundColor: '#fff',
-        borderRadius: '12px',
-        boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
-        padding: '20px',
-        width: '400px',
-        maxWidth: '90%',
-        minHeight: 'auto',
-        textAlign: 'center',
-        position: 'static',
-      },
-      overlay: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 9999,
-      },
-    }}
-  >
-    <h2
-      style={{
-        fontSize: '24px',
-        fontWeight: 800,
-        color: '#333',
-        marginBottom: '15px',
-        textTransform: 'uppercase',
-        letterSpacing: '1px',
-      }}
-    >
-      Информация о событии
-    </h2>
-    {selectedEvent && (
-      <div
-        style={{
-          marginBottom: '15px',
-          textAlign: 'left',
+            alignItems: 'center',
+            zIndex: 9999,
+          },
         }}
       >
-        <p
+        <h2
           style={{
-            fontSize: '16px',
-            color: '#555',
-            marginBottom: '10px',
-          }}
-        >
-          <strong
-            style={{
-              color: '#444',
-              fontWeight: 600,
-            }}
-          >
-            Название:
-          </strong>{' '}
-          {selectedEvent.title}
-        </p>
-        <p
-          style={{
-            fontSize: '16px',
-            color: '#555',
-            marginBottom: '10px',
-          }}
-        >
-          <strong
-            style={{
-              color: '#444',
-              fontWeight: 600,
-            }}
-          >
-            Дата и время:
-          </strong>{' '}
-          {new Date(selectedEvent.start!).toLocaleString('ru-RU')}
-        </p>
-        {selectedEvent.extendedProps.type === 'symptom' && (
-          <p
-            style={{
-              fontSize: '16px',
-              color: '#555',
-              marginBottom: '10px',
-            }}
-          >
-            <strong
-              style={{
-                color: '#444',
-                fontWeight: 600,
-              }}
-            >
-              Тяжесть:
-            </strong>{' '}
-            {selectedEvent.extendedProps.weight}
-          </p>
-        )}
-        {selectedEvent.extendedProps.type === 'medication' && (
-          <>
-            <p
-              style={{
-                fontSize: '16px',
-                color: '#555',
-                marginBottom: '10px',
-              }}
-            >
-              <strong
-                style={{
-                  color: '#444',
-                  fontWeight: 600,
-                }}
-              >
-                Количество:
-              </strong>{' '}
-              {selectedEvent.extendedProps.notes ?? 'Не указано'}
-            </p>
-            <p
-              style={{
-                fontSize: '16px',
-                color: '#555',
-                marginBottom: '10px',
-              }}
-            >
-              <strong
-                style={{
-                  color: '#444',
-                  fontWeight: 600,
-                }}
-              >
-                Дозировка:
-              </strong>{' '}
-              {selectedEvent.extendedProps.dosage ? `${selectedEvent.extendedProps.dosage} мг` : 'Не указано'}
-            </p>
-          </>
-        )}
-      </div>
-    )}
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '15px',
-        alignItems: 'center',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '15px',
-          width: '100%',
-        }}
-      >
-        <button
-          style={{
-            borderRadius: '20px',
-            border: '1px solid #6eb2bada',
-            backgroundColor: '#0b7c89ae',
-            color: '#ffffff',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            padding: '12px 0', // Убираем боковые padding, чтобы ширина зависела от flex
-            letterSpacing: '1px',
+            fontSize: '24px',
+            fontWeight: 800,
+            color: '#333',
+            marginBottom: '15px',
             textTransform: 'uppercase',
-            cursor: 'pointer',
-            transition: 'transform 80ms ease-in',
-            flex: '1', // Обе кнопки занимают одинаковую ширину
-            maxWidth: '150px', // Ограничиваем ширину каждой кнопки
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#0b7c89';
-            e.currentTarget.style.transform = 'translateY(-3px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#0b7c89ae';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
-          type="button"
-          onClick={handleEditEvent}
-        >
-          Изменить
-        </button>
-        <button
-          style={{
-            borderRadius: '20px',
-            border: '1px solid #dc3545',
-            backgroundColor: '#dc3545',
-            color: '#ffffff',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            padding: '12px 0',
             letterSpacing: '1px',
-            textTransform: 'uppercase',
-            cursor: 'pointer',
-            transition: 'transform 80ms ease-in',
-            flex: '1',
-            maxWidth: '150px',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#c82333';
-            e.currentTarget.style.transform = 'translateY(-3px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#dc3545';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}
-          type="button"
-          onClick={handleDeleteEvent}
         >
-          Удалить
-        </button>
-      </div>
-      <button
-        style={{
-          borderRadius: '20px',
-          border: '1px solid #ff4b2b',
-          backgroundColor: '#ff4b2b',
-          color: '#ffffff',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          padding: '12px 0',
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-          cursor: 'pointer',
-          transition: 'transform 80ms ease-in',
-          width: '100%',
-          maxWidth: '315px', // Ширина равна сумме ширин двух кнопок (150px + 150px + 15px gap)
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#e6391a';
-          e.currentTarget.style.transform = 'translateY(-3px)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#ff4b2b';
-          e.currentTarget.style.transform = 'translateY(0)';
-        }}
-        type="button"
-        onClick={closeEventModal}
-      >
-        Закрыть
-      </button>
-    </div>
-  </Modal>
+          Введите данные для лекарства
+        </h2>
+        <form onSubmit={handleSaveMedication}>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Название лекарства:
+            </label>
+            <Select
+              value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
+              onChange={handleMedicationChange}
+              options={medicationOptions}
+              placeholder="Выберите лекарство"
+              isSearchable
+              styles={{
+                control: (provided) => ({
+                  ...provided,
+                  borderRadius: '7px',
+                  border: 'none',
+                  backgroundColor: '#eee',
+                  padding: '5px',
+                  fontSize: '16px',
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  borderRadius: '7px',
+                }),
+              }}
+            />
+            <p
+              style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px', fontSize: '14px' }}
+              onClick={() => openAddNewModal('medication')}
+            >
+              Не нашли нужного? Добавить своё
+            </p>
+          </div>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Время приема:
+            </label>
+            <input
+              type="time"
+              value={medicationTime}
+              onChange={handleMedicationTimeChange}
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+            />
+          </div>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Количество (шт) (необязательно):
+            </label>
+            <input
+              type="number"
+              value={quantity ?? ''}
+              onChange={handleQuantityChange}
+              placeholder="Количество"
+              min="0"
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+            />
+          </div>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Дозировка (мг) (необязательно):
+            </label>
+            <input
+              type="number"
+              value={dosage ?? ''}
+              onChange={handleDosageChange}
+              placeholder="Дозировка"
+              min="0"
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #ff4b2b',
+                backgroundColor: '#ff4b2b',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 45px',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e6391a';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ff4b2b';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="button"
+              onClick={closeMedicationModal}
+            >
+              Закрыть
+            </button>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #6eb2bada',
+                backgroundColor: '#0b7c89ae',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 45px',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#0b7c89';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#0b7c89ae';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="submit"
+            >
+              Сохранить
+            </button>
+          </div>
+        </form>
+      </Modal>
 
-  <Modal
-  isOpen={isUpdateSymptomEventModalOpen}
-  onRequestClose={closeUpdateSymptomEventModal}
-  contentLabel="Update Symptom Event Modal"
-  style={{
-    content: {
-      fontFamily: "'Montserrat', sans-serif",
-      backgroundColor: '#fff',
-      borderRadius: '12px',
-      boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
-      padding: '20px',
-      width: '400px',
-      maxWidth: '90%',
-      minHeight: 'auto', // Подстраиваем высоту под содержимое
-      textAlign: 'center',
-      position: 'static', // Убираем position: absolute, используем flex в overlay
-    },
-    overlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 9999,
-    },
-  }}
->
-  <h2
-    style={{
-      fontSize: '24px',
-      fontWeight: 800,
-      color: '#333',
-      marginBottom: '15px',
-      textTransform: 'uppercase',
-      letterSpacing: '1px',
-    }}
-  >
-    Редактирование симптома
-  </h2>
-  <form onSubmit={handleSaveSymptomEdit}>
-    <div
-      style={{
-        marginBottom: '15px',
-        textAlign: 'left',
-      }}
-    >
-      <label
+      <Modal
+        isOpen={isEventModalOpen}
+        onRequestClose={closeEventModal}
+        contentLabel="Event Details Modal"
         style={{
-          fontSize: '16px',
-          fontWeight: 600,
-          color: '#444',
-          display: 'block',
-          marginBottom: '5px',
+          content: {
+            fontFamily: "'Montserrat', sans-serif",
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+            padding: '20px',
+            width: '400px',
+            maxWidth: '90%',
+            minHeight: 'auto',
+            textAlign: 'center',
+            position: 'static',
+          },
+          overlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+          },
         }}
       >
-        Название симптома:
-      </label>
-      <Select
-        value={symptomOptions.find((option: Option) => option.value === selectedSymptom)}
-        onChange={handleSymptomChange}
-        options={symptomOptions}
-        placeholder="Выберите симптом"
-        isSearchable
-        styles={{
-          control: (provided) => ({
-            ...provided,
-            borderRadius: '7px',
-            border: 'none',
-            backgroundColor: '#eee',
-            padding: '5px',
-            fontSize: '16px',
-          }),
-          menu: (provided) => ({
-            ...provided,
-            borderRadius: '7px',
-          }),
-        }}
-      />
-    </div>
-    <div
-      style={{
-        marginBottom: '15px',
-        textAlign: 'left',
-      }}
-    >
-      <label
-        style={{
-          fontSize: '16px',
-          fontWeight: 600,
-          color: '#444',
-          display: 'block',
-          marginBottom: '5px',
-        }}
-      >
-        Время симптома:
-      </label>
-      <input
-        type="time"
-        value={symptomTime}
-        onChange={handleSymptomTimeChange}
-        style={{
-          width: '100%',
-          padding: '12px 15px',
-          borderRadius: '7px',
-          border: 'none',
-          backgroundColor: '#eee',
-          fontSize: '16px',
-        }}
-      />
-    </div>
-    <div
-      style={{
-        marginBottom: '15px',
-        textAlign: 'left',
-      }}
-    >
-      <label
-        style={{
-          fontSize: '16px',
-          fontWeight: 600,
-          color: '#444',
-          display: 'block',
-          marginBottom: '5px',
-        }}
-      >
-        Тяжесть симптома:
-      </label>
-      <div
-        style={{
-          display: 'flex',
-          gap: '10px',
-          justifyContent: 'center',
-        }}
-      >
-        {[1, 2, 3, 4, 5].map((sev) => (
-          <button
-            type="button"
-            key={sev}
-            className={`severity-button ${severity === sev ? 'selected' : ''}`}
-            onClick={() => handleSeverityChange(sev)}
-            style={{
-              backgroundColor: severity === sev ? '#0b7c89ae' : '#eee',
-              color: severity === sev ? '#ffffff' : '#555',
-              border: '1px solid #6eb2bada',
-              borderRadius: '7px',
-              padding: '10px 15px',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              transition: 'background-color 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              if (severity !== sev) {
-                e.currentTarget.style.backgroundColor = '#ddd';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (severity !== sev) {
-                e.currentTarget.style.backgroundColor = '#eee';
-              }
-            }}
-          >
-            {sev}
-          </button>
-        ))}
-      </div>
-    </div>
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '15px',
-      }}
-    >
-      <button
-        style={{
-          borderRadius: '20px',
-          border: '1px solid #ff4b2b',
-          backgroundColor: '#ff4b2b',
-          color: '#ffffff',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          padding: '12px 45px',
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-          cursor: 'pointer',
-          transition: 'transform 80ms ease-in',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#e6391a';
-          e.currentTarget.style.transform = 'translateY(-3px)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#ff4b2b';
-          e.currentTarget.style.transform = 'translateY(0)';
-        }}
-        type="button"
-        onClick={closeUpdateSymptomEventModal}
-      >
-        Закрыть
-      </button>
-      <button
-        style={{
-          borderRadius: '20px',
-          border: '1px solid #6eb2bada',
-          backgroundColor: '#0b7c89ae',
-          color: '#ffffff',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          padding: '12px 45px',
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-          cursor: 'pointer',
-          transition: 'transform 80ms ease-in',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#0b7c89';
-          e.currentTarget.style.transform = 'translateY(-3px)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#0b7c89ae';
-          e.currentTarget.style.transform = 'translateY(0)';
-        }}
-        type="submit"
-      >
-        Сохранить
-      </button>
-    </div>
-  </form>
-</Modal>
+        <h2
+          style={{
+            fontSize: '24px',
+            fontWeight: 800,
+            color: '#333',
+            marginBottom: '15px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}
+        >
+          Информация о событии
+        </h2>
+        {selectedEvent && (
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <p style={{ fontSize: '16px', color: '#555', marginBottom: '10px' }}>
+              <strong style={{ color: '#444', fontWeight: 600 }}>Название:</strong> {selectedEvent.title}
+            </p>
+            <p style={{ fontSize: '16px', color: '#555', marginBottom: '10px' }}>
+              <strong style={{ color: '#444', fontWeight: 600 }}>Дата и время:</strong>{' '}
+              {new Date(selectedEvent.start!).toLocaleString('ru-RU')}
+            </p>
+            {selectedEvent.extendedProps.type === 'symptom' && (
+              <p style={{ fontSize: '16px', color: '#555', marginBottom: '10px' }}>
+                <strong style={{ color: '#444', fontWeight: 600 }}>Тяжесть:</strong> {selectedEvent.extendedProps.weight}
+              </p>
+            )}
+            {selectedEvent.extendedProps.type === 'medication' && (
+              <>
+                <p style={{ fontSize: '16px', color: '#555', marginBottom: '10px' }}>
+                  <strong style={{ color: '#444', fontWeight: 600 }}>Количество:</strong>{' '}
+                  {selectedEvent.extendedProps.notes ?? 'Не указано'}
+                </p>
+                <p style={{ fontSize: '16px', color: '#555', marginBottom: '10px' }}>
+                  <strong style={{ color: '#444', fontWeight: 600 }}>Дозировка:</strong>{' '}
+                  {selectedEvent.extendedProps.dosage ? `${selectedEvent.extendedProps.dosage} мг` : 'Не указано'}
+                </p>
+              </>
+            )}
+            {selectedEvent.extendedProps.type === 'analysis' && (
+              <p style={{ fontSize: '16px', color: '#555', marginBottom: '10px' }}>
+                <strong style={{ color: '#444', fontWeight: 600 }}>Файл:</strong>{' '}
+                {selectedEvent.extendedProps.filePath ? (
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (selectedEvent && selectedEvent.id) {
+                        const analysisId = selectedEvent.id;
+                        const token = Cookies.get('authToken');
+                        if (!token) {
+                          console.error('Токен авторизации отсутствует');
+                          return;
+                        }
+                        fetch(`http://localhost:5001/api/analysis/file/${analysisId}`, {
+                          headers: {
+                            Authorization: `Bearer ${token}`,
+                          },
+                        })
+                          .then((response) => {
+                            if (!response.ok) {
+                              throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.blob();
+                          })
+                          .then((blob) => {
+                            const url = window.URL.createObjectURL(blob);
+                            window.open(url, '_blank');
+                          })
+                          .catch((error) => {
+                            console.error('Ошибка при загрузке файла:', error);
+                            alert('Не удалось открыть файл. Проверьте авторизацию или обратитесь к администратору.');
+                          });
+                      }
+                    }}
+                    style={{ color: '#0b7c89', textDecoration: 'underline', cursor: 'pointer' }}
+                  >
+                    Открыть файл
+                  </a>
+                ) : (
+                  'Файл отсутствует'
+                )}
+              </p>
+            )}
+          </div>
+        )}
+        {selectedEvent?.extendedProps.type === 'analysis' ? (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', width: '100%' }}>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #dc3545',
+                backgroundColor: '#dc3545',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 0',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+                flex: '1',
+                maxWidth: '150px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#c82333';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#dc3545';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="button"
+              onClick={handleDeleteEvent}
+            >
+              Удалить
+            </button>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #ff4b2b',
+                backgroundColor: '#ff4b2b',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 0',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+                flex: '1',
+                maxWidth: '150px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e6391a';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ff4b2b';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="button"
+              onClick={closeEventModal}
+            >
+              Закрыть
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', width: '100%' }}>
+              <button
+                style={{
+                  borderRadius: '20px',
+                  border: '1px solid #6eb2bada',
+                  backgroundColor: '#0b7c89ae',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  padding: '12px 0',
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  transition: 'transform 80ms ease-in',
+                  flex: '1',
+                  maxWidth: '150px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0b7c89';
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0b7c89ae';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+                type="button"
+                onClick={handleEditEvent}
+              >
+                Изменить
+              </button>
+              <button
+                style={{
+                  borderRadius: '20px',
+                  border: '1px solid #dc3545',
+                  backgroundColor: '#dc3545',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  padding: '12px 0',
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                  transition: 'transform 80ms ease-in',
+                  flex: '1',
+                  maxWidth: '150px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#c82333';
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#dc3545';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+                type="button"
+                onClick={handleDeleteEvent}
+              >
+                Удалить
+              </button>
+            </div>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #ff4b2b',
+                backgroundColor: '#ff4b2b',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 0',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+                width: '100%',
+                maxWidth: '315px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e6391a';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ff4b2b';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="button"
+              onClick={closeEventModal}
+            >
+              Закрыть
+            </button>
+          </div>
+        )}
+      </Modal>
 
-<Modal
-  isOpen={isUpdateMedicalEventModalOpen}
-  onRequestClose={closeUpdateMedicalEventModal}
-  contentLabel="Update Medical Event Modal"
-  style={{
-    content: {
-      fontFamily: "'Montserrat', sans-serif",
-      backgroundColor: '#fff',
-      borderRadius: '12px',
-      boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
-      padding: '20px',
-      width: '400px',
-      maxWidth: '90%',
-      minHeight: 'auto', // Подстраиваем высоту под содержимое
-      textAlign: 'center',
-      position: 'static', // Убираем position: absolute, используем flex в overlay
-    },
-    overlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 9999,
-    },
-  }}
->
-  <h2
-    style={{
-      fontSize: '24px',
-      fontWeight: 800,
-      color: '#333',
-      marginBottom: '15px',
-      textTransform: 'uppercase',
-      letterSpacing: '1px',
-    }}
-  >
-    Редактирование лекарства
-  </h2>
-  <form onSubmit={handleSaveMedicalEdit}>
-    <div
-      style={{
-        marginBottom: '15px',
-        textAlign: 'left',
-      }}
-    >
-      <label
+      <Modal
+        isOpen={isUpdateSymptomEventModalOpen}
+        onRequestClose={closeUpdateSymptomEventModal}
+        contentLabel="Update Symptom Event Modal"
         style={{
-          fontSize: '16px',
-          fontWeight: 600,
-          color: '#444',
-          display: 'block',
-          marginBottom: '5px',
+          content: {
+            fontFamily: "'Montserrat', sans-serif",
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+            padding: '20px',
+            width: '400px',
+            maxWidth: '90%',
+            minHeight: 'auto',
+            textAlign: 'center',
+            position: 'static',
+          },
+          overlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+          },
         }}
       >
-        Название лекарства:
-      </label>
-      <Select
-        value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
-        onChange={handleMedicationChange}
-        options={medicationOptions}
-        placeholder="Выберите лекарство"
-        isSearchable
-        styles={{
-          control: (provided) => ({
-            ...provided,
-            borderRadius: '7px',
-            border: 'none',
-            backgroundColor: '#eee',
-            padding: '5px',
-            fontSize: '16px',
-          }),
-          menu: (provided) => ({
-            ...provided,
-            borderRadius: '7px',
-          }),
-        }}
-      />
-    </div>
-    <div
-      style={{
-        marginBottom: '15px',
-        textAlign: 'left',
-      }}
-    >
-      <label
+        <h2
+          style={{
+            fontSize: '24px',
+            fontWeight: 800,
+            color: '#333',
+            marginBottom: '15px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}
+        >
+          Редактирование симптома
+        </h2>
+        <form onSubmit={handleSaveSymptomEdit}>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Название симптома:
+            </label>
+            <Select
+              value={symptomOptions.find((option: Option) => option.value === selectedSymptom)}
+              onChange={handleSymptomChange}
+              options={symptomOptions}
+              placeholder="Выберите симптом"
+              isSearchable
+              styles={{
+                control: (provided) => ({
+                  ...provided,
+                  borderRadius: '7px',
+                  border: 'none',
+                  backgroundColor: '#eee',
+                  padding: '5px',
+                  fontSize: '16px',
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  borderRadius: '7px',
+                }),
+              }}
+            />
+          </div>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Время симптома:
+            </label>
+            <input
+              type="time"
+              value={symptomTime}
+              onChange={handleSymptomTimeChange}
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+            />
+          </div>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Тяжесть симптома:
+            </label>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              {[1, 2, 3, 4, 5].map((sev) => (
+                <button
+                  type="button"
+                  key={sev}
+                  className={`severity-button ${severity === sev ? 'selected' : ''}`}
+                  onClick={() => handleSeverityChange(sev)}
+                  style={{
+                    backgroundColor: severity === sev ? '#0b7c89ae' : '#eee',
+                    color: severity === sev ? '#ffffff' : '#555',
+                    border: '1px solid #6eb2bada',
+                    borderRadius: '7px',
+                    padding: '10px 15px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (severity !== sev) e.currentTarget.style.backgroundColor = '#ddd';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (severity !== sev) e.currentTarget.style.backgroundColor = '#eee';
+                  }}
+                >
+                  {sev}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #ff4b2b',
+                backgroundColor: '#ff4b2b',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 45px',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e6391a';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ff4b2b';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="button"
+              onClick={closeUpdateSymptomEventModal}
+            >
+              Закрыть
+            </button>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #6eb2bada',
+                backgroundColor: '#0b7c89ae',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 45px',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#0b7c89';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#0b7c89ae';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="submit"
+            >
+              Сохранить
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isUpdateMedicalEventModalOpen}
+        onRequestClose={closeUpdateMedicalEventModal}
+        contentLabel="Update Medical Event Modal"
         style={{
-          fontSize: '16px',
-          fontWeight: 600,
-          color: '#444',
-          display: 'block',
-          marginBottom: '5px',
+          content: {
+            fontFamily: "'Montserrat', sans-serif",
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+            padding: '20px',
+            width: '400px',
+            maxWidth: '90%',
+            minHeight: 'auto',
+            textAlign: 'center',
+            position: 'static',
+          },
+          overlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+          },
         }}
       >
-        Время приема:
-      </label>
-      <input
-        type="time"
-        value={medicationTime}
-        onChange={handleMedicationTimeChange}
+        <h2
+          style={{
+            fontSize: '24px',
+            fontWeight: 800,
+            color: '#333',
+            marginBottom: '15px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}
+        >
+          Редактирование лекарства
+        </h2>
+        <form onSubmit={handleSaveMedicalEdit}>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Название лекарства:
+            </label>
+            <Select
+              value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
+              onChange={handleMedicationChange}
+              options={medicationOptions}
+              placeholder="Выберите лекарство"
+              isSearchable
+              styles={{
+                control: (provided) => ({
+                  ...provided,
+                  borderRadius: '7px',
+                  border: 'none',
+                  backgroundColor: '#eee',
+                  padding: '5px',
+                  fontSize: '16px',
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  borderRadius: '7px',
+                }),
+              }}
+            />
+          </div>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Время приема:
+            </label>
+            <input
+              type="time"
+              value={medicationTime}
+              onChange={handleMedicationTimeChange}
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+            />
+          </div>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Количество (шт) (необязательно):
+            </label>
+            <input
+              type="number"
+              value={quantity ?? ''}
+              onChange={handleQuantityChange}
+              placeholder="Количество"
+              min="0"
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+            />
+          </div>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Дозировка (мг) (необязательно):
+            </label>
+            <input
+              type="number"
+              value={dosage ?? ''}
+              onChange={handleDosageChange}
+              placeholder="Дозировка"
+              min="0"
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #ff4b2b',
+                backgroundColor: '#ff4b2b',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 45px',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e6391a';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ff4b2b';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="button"
+              onClick={closeUpdateMedicalEventModal}
+            >
+              Закрыть
+            </button>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #6eb2bada',
+                backgroundColor: '#0b7c89ae',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 45px',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#0b7c89';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#0b7c89ae';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="submit"
+            >
+              Сохранить
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isAnalysisModalOpen}
+        onRequestClose={closeAnalysisModal}
+        contentLabel="Input Analysis Data Modal"
         style={{
-          width: '100%',
-          padding: '12px 15px',
-          borderRadius: '7px',
-          border: 'none',
-          backgroundColor: '#eee',
-          fontSize: '16px',
-        }}
-      />
-    </div>
-    <div
-      style={{
-        marginBottom: '15px',
-        textAlign: 'left',
-      }}
-    >
-      <label
-        style={{
-          fontSize: '16px',
-          fontWeight: 600,
-          color: '#444',
-          display: 'block',
-          marginBottom: '5px',
+          content: {
+            fontFamily: "'Montserrat', sans-serif",
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+            padding: '20px',
+            width: '400px',
+            maxWidth: '90%',
+            minHeight: 'auto',
+            textAlign: 'center',
+            position: 'static',
+          },
+          overlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+          },
         }}
       >
-        Количество (шт) (необязательно):
-      </label>
-      <input
-        type="number"
-        value={quantity ?? ''}
-        onChange={handleQuantityChange}
-        placeholder="Количество"
-        min="0"
-        style={{
-          width: '100%',
-          padding: '12px 15px',
-          borderRadius: '7px',
-          border: 'none',
-          backgroundColor: '#eee',
-          fontSize: '16px',
-        }}
-      />
-    </div>
-    <div
-      style={{
-        marginBottom: '15px',
-        textAlign: 'left',
-      }}
-    >
-      <label
-        style={{
-          fontSize: '16px',
-          fontWeight: 600,
-          color: '#444',
-          display: 'block',
-          marginBottom: '5px',
-        }}
-      >
-        Дозировка (мг) (необязательно):
-      </label>
-      <input
-        type="number"
-        value={dosage ?? ''}
-        onChange={handleDosageChange}
-        placeholder="Дозировка"
-        min="0"
-        style={{
-          width: '100%',
-          padding: '12px 15px',
-          borderRadius: '7px',
-          border: 'none',
-          backgroundColor: '#eee',
-          fontSize: '16px',
-        }}
-      />
-    </div>
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '15px',
-      }}
-    >
-      <button
-        style={{
-          borderRadius: '20px',
-          border: '1px solid #ff4b2b',
-          backgroundColor: '#ff4b2b',
-          color: '#ffffff',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          padding: '12px 45px',
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-          cursor: 'pointer',
-          transition: 'transform 80ms ease-in',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#e6391a';
-          e.currentTarget.style.transform = 'translateY(-3px)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#ff4b2b';
-          e.currentTarget.style.transform = 'translateY(0)';
-        }}
-        type="button"
-        onClick={closeUpdateMedicalEventModal}
-      >
-        Закрыть
-      </button>
-      <button
-        style={{
-          borderRadius: '20px',
-          border: '1px solid #6eb2bada',
-          backgroundColor: '#0b7c89ae',
-          color: '#ffffff',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          padding: '12px 45px',
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-          cursor: 'pointer',
-          transition: 'transform 80ms ease-in',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#0b7c89';
-          e.currentTarget.style.transform = 'translateY(-3px)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#0b7c89ae';
-          e.currentTarget.style.transform = 'translateY(0)';
-        }}
-        type="submit"
-      >
-        Сохранить
-      </button>
-    </div>
-  </form>
-</Modal>
-<style>
+        <h2
+          style={{
+            fontSize: '24px',
+            fontWeight: 800,
+            color: '#333',
+            marginBottom: '15px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}
+        >
+          Введите данные для анализа
+        </h2>
+        <form onSubmit={handleSaveAnalysis}>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Название анализа:
+            </label>
+            <input
+              type="text"
+              value={analysisTitle}
+              onChange={handleAnalysisTitleChange}
+              placeholder="Введите название анализа"
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+            />
+          </div>
+          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+              Выберите файл:
+            </label>
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf"
+              onChange={handleAnalysisFileChange}
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #ff4b2b',
+                backgroundColor: '#ff4b2b',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 45px',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e6391a';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ff4b2b';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="button"
+              onClick={closeAnalysisModal}
+            >
+              Закрыть
+            </button>
+            <button
+              style={{
+                borderRadius: '20px',
+                border: '1px solid #6eb2bada',
+                backgroundColor: '#0b7c89ae',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '12px 45px',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'transform 80ms ease-in',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#0b7c89';
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#0b7c89ae';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              type="submit"
+            >
+              Сохранить
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <style>
 {`
   @media (max-width: 768px) {
-  /* Основной контейнер календаря */
-  .demo-app {
-    flex-direction: column;
-    padding: 0;
-    min-height: 100vh;
+    .demo-app {
+      flex-direction: column;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    .demo-app-main {
+      padding: 1em;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .fc {
+      font-size: 12px;
+    }
+
+    .fc .fc-toolbar {
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .fc .fc-toolbar-title {
+      font-size: 16px;
+    }
+
+    .fc .fc-button {
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+
+    .fc .fc-daygrid-day {
+      padding: 2px;
+      min-width: 48px;
+    }
+
+    .fc .fc-daygrid-body {
+      width: 100%;
+      min-width: 336px;
+    }
+
+    .fc .fc-daygrid-day-number {
+      font-size: 10px;
+    }
+
+    .fc .fc-event {
+      font-size: 10px;
+      padding: 2px;
+      line-height: 1.2;
+    }
+
+    .filter-modal {
+      position: fixed !important;
+      top: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      height: 100vh !important;
+      border-radius: 0 !important;
+      padding: 20px !important;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    .filter-modal h4 {
+      font-size: 18px;
+    }
+
+    .filter-modal label {
+      font-size: 14px;
+    }
+
+    .filter-modal button {
+      font-size: 12px;
+      padding: 8px 12px;
+    }
+
+    .fc-daygrid-event-dot {
+      display: none;
+    }
+
+    .modal-content {
+      width: 90% !important;
+      max-width: 320px !important;
+      padding: 15px !important;
+      min-height: unset !important;
+    }
+
+    .modal-content h2 {
+      font-size: 18px !important;
+      margin-bottom: 10px !important;
+    }
+
+    .modal-content p,
+    .modal-content label {
+      font-size: 14px !important;
+    }
+
+    .modal-content input,
+    .modal-content select {
+      font-size: 14px !important;
+      padding: 8px !important;
+    }
+
+    .modal-content button {
+      font-size: 10px !important;
+      padding: 8px 20px !important;
+      border-radius: 15px !important;
+    }
+
+    .modal-content .severity-button {
+      padding: 6px 10px !important;
+      font-size: 12px !important;
+    }
+
+    .modal-content > div[style*="display: flex"] {
+      flex-direction: column !important;
+      gap: 10px !important;
+    }
+
+    .modal-content > div[style*="display: flex"] > button {
+      width: 100% !important;
+      max-width: unset !important;
+    }
+
+    .modal-content .react-select__control {
+      font-size: 14px !important;
+      padding: 4px !important;
+    }
+
+    .modal-content .react-select__menu {
+      font-size: 14px !important;
+    }
+
+    .modal-content[aria-label="Add New Symptom Modal"] {
+      width: 90% !important;
+      max-width: 300px !important;
+      padding: 15px !important;
+    }
+
+    .modal-content[aria-label="Add New Symptom Modal"] input {
+      font-size: 14px !important;
+      padding: 8px !important;
+    }
+
+    .modal-content[aria-label="Add New Symptom Modal"] button {
+      font-size: 12px !important;
+      padding: 8px 16px !important;
+    }
+
+    .fc .fc-daygrid-more-link {
+      font-size: 10px;
+    }
+
+    .modal-content {
+      max-height: 80vh !important;
+      overflow-y: auto !important;
+    }
   }
 
-  .demo-app-main {
-    padding: 1em;
-    width: 100%;
-    box-sizing: border-box;
-  }
+  @media (max-width: 480px) {
+    .fc .fc-toolbar-title {
+      font-size: 14px;
+    }
 
-  /* Стили для FullCalendar */
-  .fc {
-    font-size: 12px;
-  }
+    .fc .fc-button {
+      font-size: 10px;
+      padding: 5px 8px;
+    }
 
-  .fc .fc-toolbar {
-    flex-direction: column;
-    gap: 10px;
-    padding: 10px;
-  }
+    .modal-content h2 {
+      font-size: 16px !important;
+    }
 
-  .fc .fc-toolbar-title {
-    font-size: 16px;
-  }
+    .modal-content p,
+    .modal-content label {
+      fontSize: '12px !important;
+    }
 
-  .fc .fc-button {
-    font-size: 12px;
-    padding: 6px 10px;
+    .modal-content button {
+      font-size: 9px !important;
+      padding: 6px 16px !important;
+    }
   }
-
-  .fc .fc-daygrid-day {
-    padding: 2px;
-    min-width: 48px; /* Увеличиваем ширину колонок дней */
-  }
-
-  .fc .fc-daygrid-body {
-    width: 100%;
-    min-width: 336px; /* 7 дней × 48px = 336px, для равномерного распределения */
-  }
-
-  .fc .fc-daygrid-day-number {
-    font-size: 10px;
-  }
-
-  .fc .fc-event {
-    font-size: 10px;
-    padding: 2px;
-    line-height: 1.2;
-  }
-
-  /* Панель фильтров */
-  .filter-modal {
-    position: fixed !important;
-    top: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    height: 100vh !important;
-    border-radius: 0 !important;
-    padding: 20px !important;
-    box-sizing: border-box;
-    overflow-y: auto;
-  }
-
-  .filter-modal h4 {
-    font-size: 18px;
-  }
-
-  .filter-modal label {
-    font-size: 14px;
-  }
-
-  .filter-modal button {
-    font-size: 12px;
-    padding: 8px 12px;
-  }
-
-  /* Убираем точку возле событий */
-  .fc-daygrid-event-dot {
-    display: none; /* Скрываем точку */
-  }
-
-  /* Модальные окна */
-  .modal-content {
-    width: 90% !important;
-    max-width: 320px !important;
-    padding: 15px !important;
-    min-height: unset !important;
-  }
-
-  .modal-content h2 {
-    font-size: 18px !important;
-    margin-bottom: 10px !important;
-  }
-
-  .modal-content p,
-  .modal-content label {
-    font-size: 14px !important;
-  }
-
-  .modal-content input,
-  .modal-content select {
-    font-size: 14px !important;
-    padding: 8px !important;
-  }
-
-  .modal-content button {
-    font-size: 10px !important;
-    padding: 8px 20px !important;
-    border-radius: 15px !important;
-  }
-
-  /* Кнопки в модальных окнах */
-  .modal-content .severity-button {
-    padding: 6px 10px !important;
-    font-size: 12px !important;
-  }
-
-  /* Контейнеры кнопок */
-  .modal-content > div[style*="display: flex"] {
-    flex-direction: column !important;
-    gap: 10px !important;
-  }
-
-  .modal-content > div[style*="display: flex"] > button {
-    width: 100% !important;
-    max-width: unset !important;
-  }
-
-  /* Select компонент */
-  .modal-content .react-select__control {
-    font-size: 14px !important;
-    padding: 4px !important;
-  }
-
-  .modal-content .react-select__menu {
-    font-size: 14px !important;
-  }
-
-  /* Модальное окно добавления нового симптома/лекарства */
-  .modal-content[aria-label="Add New Symptom Modal"] {
-    width: 90% !important;
-    max-width: 300px !important;
-    padding: 15px !important;
-  }
-
-  .modal-content[aria-label="Add New Symptom Modal"] input {
-    font-size: 14px !important;
-    padding: 8px !important;
-  }
-
-  .modal-content[aria-label="Add New Symptom Modal"] button {
-    font-size: 12px !important;
-    padding: 8px 16px !important;
-  }
-
-  /* Скрытие лишних элементов на маленьких экранах */
-  .fc .fc-daygrid-more-link {
-    font-size: 10px;
-  }
-
-  /* Обеспечение прокрутки в длинных модальных окнах */
-  .modal-content {
-    max-height: 80vh !important;
-    overflow-y: auto !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .fc .fc-toolbar-title {
-    font-size: 14px;
-  }
-
-  .fc .fc-button {
-    font-size: 10px;
-    padding: 5px 8px;
-  }
-
-  .modal-content h2 {
-    font-size: 16px !important;
-  }
-
-  .modal-content p,
-  .modal-content label {
-    font-size: 12px !important;
-  }
-
-  .modal-content button {
-    font-size: 9px !important;
-    padding: 6px 16px !important;
-  }
-}
 `}
-</style>
+      </style>
     </div>
   );
 };
