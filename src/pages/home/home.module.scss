@@ -233,6 +233,15 @@
   color: #2575fc; /* Используем синий оттенок для выделения */
 }
 
+.featureIcon {
+  width: 101%; /* Настройте под ваши скриншоты */
+  max-width: 3000px; /* Ограничьте максимальную ширину */
+  height: auto;
+  margin-bottom: 10px;
+  border-radius: 5px; /* Закругленные углы для скриншотов */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Тень для глубины */
+}
+
 /* Адаптивность для мобильных */
 @media (max-width: 768px) {
   .featuresList {

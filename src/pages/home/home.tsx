@@ -3,16 +3,20 @@ import { Link, useNavigate } from "react-router-dom";
 import s from "./home.module.scss"; // Подключаем стили для страницы
 import { useAppSelector } from "../../hooks/hooks";
 
-const Home: React.FC = () => {
+// Импортируем изображения
+import calendarScreenshot from "../../assets/11.png";
+import reportScreenshot from "../../assets/12.png";
+import aiScreenshot from "../../assets/13.png";
 
+const Home: React.FC = () => {
   const isAuthenticated = useAppSelector((state) => state.authSlice.isAuthenticated);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/Personalpage')
+      navigate("/Personalpage");
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   return (
     <div className={s.homeContainer}>
@@ -35,19 +39,19 @@ const Home: React.FC = () => {
         <h2 className={s.featuresTitle}>Почему вы должны выбрать Health Tracker?</h2>
         <div className={s.featuresList}>
           <div className={s.featureItem}>
-            <img src="/icons/calendar.svg" alt="Календарь" className={s.featureIcon} />
+            <img src={calendarScreenshot} alt="Интерактивный календарь" className={s.featureIcon} />
             <h3>Интерактивный календарь</h3>
             <p>Легко отслеживайте симптомы и лекарства прямо в календаре.</p>
           </div>
           <div className={s.featureItem}>
-            <img src="/icons/report.svg" alt="Отчеты" className={s.featureIcon} />
+            <img src={reportScreenshot} alt="Генерация отчетов" className={s.featureIcon} />
             <h3>Генерация отчетов</h3>
-            <p>Создавайте подробные отчеты и показывай их врачу.</p>
+            <p>Создавайте подробные отчеты в разных форматах и показывайте их врачу.</p>
           </div>
           <div className={s.featureItem}>
-            <img src="/icons/security.svg" alt="Безопасность" className={s.featureIcon} />
-            <h3>Полная безопасность</h3>
-            <p>Все ваши данные защищены и доступны только вам.</p>
+            <img src={aiScreenshot} alt="Личный ИИ помощник" className={s.featureIcon} />
+            <h3>Личный ИИ помощник</h3>
+            <p>Проведёт консультацию по всем интересующим вас вопросам связаным со здоровьем.</p>
           </div>
         </div>
       </div>
@@ -66,7 +70,7 @@ const Home: React.FC = () => {
           </div>
           <div className={s.howItWorksStep}>
             <h3>Шаг 3</h3>
-            <p>Генерируйте отчет по данным за выбранный период.</p>
+            <p>Генерируйте отчет по данным за выбранный период или получайте рекомендации от ИИ помощника.</p>
           </div>
           <div className={s.howItWorksStep}>
             <h3>Шаг 4</h3>

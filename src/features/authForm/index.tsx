@@ -20,15 +20,15 @@ const AuthForm = () => {
       <div className={s.overlayContainer}>
         <div className={s.overlay}>
           <div className={`${s.overlayPanel} ${s.overlayLeft}`}>
-          <h1>С возвращением в HealthRecord!</h1>
-          <p>Войдите, чтобы продолжить следить за своим здоровьем</p>
+          <h1>Добро пожаловать в HealthRecord!</h1>
+          <p>Зарегистрируйтесь, чтобы начать отслеживать своё здоровье и самочувствие</p>
                       <button className={s.ghost} onClick={() => setFormSection('login')}>
               Вход
             </button>
           </div>
           <div className={`${s.overlayPanel} ${s.overlayRight}`}>
-          <h1>Добро пожаловать в HealthRecord!</h1>
-            <p>Зарегистрируйтесь, чтобы начать отслеживать своё здоровье и самочувствие</p>
+          <h1>С возвращением в HealthRecord!</h1>
+            <p>Войдите, чтобы продолжить следить за своим здоровьем</p>
             <button className={s.ghost} onClick={() => setFormSection('registration')}>
               Регистрация
             </button>
