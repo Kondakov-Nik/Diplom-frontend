@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/hooks';
 import { generateReport, fetchUserReports, fetchReportFile, setSelectedReport, clearSelectedReportUrl, deleteReport } from './reportSlice';
+import Cookies from 'js-cookie';
 import { FaTrash } from 'react-icons/fa';
+import Select from 'react-select';
 import styles from './report.module.scss';
+import { jwtDecode } from 'jwt-decode';
+import axios from 'axios';
 
 const Report: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -11,16 +15,44 @@ const Report: React.FC = () => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [reportType, setReportType] = useState<string>('symptoms');
-  const [fileFormat, setFileFormat] = useState<string>('pdf'); // Новый стейт для формата
+  const [fileFormat, setFileFormat] = useState<string>('pdf');
+  const [selectedSymptoms, setSelectedSymptoms] = useState<number[]>([]);
+  const [selectedMedications, setSelectedMedications] = useState<number[]>([]);
+  const [symptoms, setSymptoms] = useState<{ id: number; name: string }[]>([]);
+  const [medications, setMedications] = useState<{ id: number; name: string }[]>([]);
 
   const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
   useEffect(() => {
-    dispatch(fetchUserReports());
+  const token = Cookies.get('authToken');
+  if (token) {
+    const decoded: { id: string } = jwtDecode(token);
+    const userId = decoded.id;
+
+    Promise.all([
+      axios
+        .get(`http://localhost:5001/api/symptom/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((res) => {
+          setSymptoms(res.data);
+        })
+        .catch((err) => console.error('Symptoms fetch error:', err)),
+      axios
+        .get(`http://localhost:5001/api/medication/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((res) => {
+          setMedications(res.data);
+        })
+        .catch((err) => console.error('Medications fetch error:', err)),
+    ]).then(() => dispatch(fetchUserReports()));
+
     return () => {
       dispatch(clearSelectedReportUrl());
     };
-  }, [dispatch]);
+  }
+}, [dispatch]);
 
   useEffect(() => {
     if (selectedReportId && !isMobile()) {
@@ -44,8 +76,16 @@ const Report: React.FC = () => {
     const formattedStartDate = formatDateToYYYYMMDD(startDate);
     const formattedEndDate = formatDateToYYYYMMDD(endDate);
 
-    dispatch(generateReport({ startDate: formattedStartDate, endDate: formattedEndDate, reportType, fileFormat }))
-      .then(() => dispatch(fetchUserReports()));
+    dispatch(
+      generateReport({
+        startDate: formattedStartDate,
+        endDate: formattedEndDate,
+        reportType,
+        fileFormat,
+        symptomIds: reportType === 'symptoms' ? selectedSymptoms : undefined,
+        medicationIds: reportType === 'medications' ? selectedMedications : undefined,
+      })
+    ).then(() => dispatch(fetchUserReports()));
   };
 
   const handleSelectReport = (reportId: number) => {
@@ -66,6 +106,9 @@ const Report: React.FC = () => {
       dispatch(deleteReport(reportId));
     }
   };
+
+  const symptomOptions = symptoms.map((symptom) => ({ value: symptom.id, label: symptom.name }));
+  const medicationOptions = medications.map((medication) => ({ value: medication.id, label: medication.name }));
 
   return (
     <div className={styles.containerReport}>
@@ -94,11 +137,7 @@ const Report: React.FC = () => {
 
         <div className={styles.inputReportType}>
           <label htmlFor="reportType">Тип отчета:</label>
-          <select
-            id="reportType"
-            value={reportType}
-            onChange={(e) => setReportType(e.target.value)}
-          >
+          <select id="reportType" value={reportType} onChange={(e) => setReportType(e.target.value)}>
             <option value="symptoms">Симптомы</option>
             <option value="medications">Лекарства</option>
           </select>
@@ -106,15 +145,37 @@ const Report: React.FC = () => {
 
         <div className={styles.inputReportFormat}>
           <label htmlFor="fileFormat">Формат:</label>
-          <select
-            id="fileFormat"
-            value={fileFormat}
-            onChange={(e) => setFileFormat(e.target.value)}
-          >
+          <select id="fileFormat" value={fileFormat} onChange={(e) => setFileFormat(e.target.value)}>
             <option value="pdf">PDF</option>
             <option value="excel">Excel</option>
           </select>
         </div>
+
+        {reportType === 'symptoms' && (
+          <div className={styles.inputReportSymptoms}>
+            <label>Выберите симптомы:</label>
+            <Select
+              isMulti
+              options={symptomOptions}
+              value={symptomOptions.filter((option) => selectedSymptoms.includes(option.value))}
+              onChange={(selected) => setSelectedSymptoms(selected.map((option) => option.value))}
+              placeholder="Можно не выбирать"
+            />
+          </div>
+        )}
+
+        {reportType === 'medications' && (
+          <div className={styles.inputReportMedications}>
+            <label>Выберите лекарства:</label>
+            <Select
+              isMulti
+              options={medicationOptions}
+              value={medicationOptions.filter((option) => selectedMedications.includes(option.value))}
+              onChange={(selected) => setSelectedMedications(selected.map((option) => option.value))}
+              placeholder="Можно не выбирать"
+            />
+          </div>
+        )}
 
         <button
           className={styles.buttonCreateReport}
@@ -135,29 +196,23 @@ const Report: React.FC = () => {
               className={selectedReportId === report.id ? styles.selectedReport : ''}
             >
               <span onClick={() => handleSelectReport(report.id)}>
-                {report.type === 'symptoms' || report.type === 'symptoms_excel' ? 'Симптомы' : 'Лекарства'} ({report.startDate} - {report.endDate})
+                {report.type === 'symptoms' || report.type === 'symptoms_excel' ? 'Симптомы' : 'Лекарства'} (
+                {report.startDate} - {report.endDate})
                 {report.type === 'symptoms_excel' || report.type === 'medications_excel' ? ' (Excel)' : ' (PDF)'}
               </span>
-              <FaTrash
-                className={styles.deleteIcon}
-                onClick={() => handleDeleteReport(report.id)}
-              />
+              <FaTrash className={styles.deleteIcon} onClick={() => handleDeleteReport(report.id)} />
             </li>
           ))}
         </ul>
       </div>
 
       <div className={styles.rightPanel}>
-      {!isMobile() && selectedReportId && selectedReportUrl ? (
-        <iframe
-          src={selectedReportUrl}
-          title="Report Viewer"
-          className={styles.reportViewer}
-        />
-      ) : (
-        <p className={styles.placeholderText}>Выберите PDF отчет для просмотра</p>
-      )}
-    </div>
+        {!isMobile() && selectedReportId && selectedReportUrl ? (
+          <iframe src={selectedReportUrl} title="Report Viewer" className={styles.reportViewer} />
+        ) : (
+          <p className={styles.placeholderText}>Выберите PDF отчет для просмотра</p>
+        )}
+      </div>
     </div>
   );
 };

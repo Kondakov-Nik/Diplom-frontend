@@ -1,11 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode } from 'jwt-decode';
 import Cookies from 'js-cookie';
 
 interface ReportState {
   reportId: number | null;
-  reports: Array<{ id: number, type: string, startDate: string, endDate: string, createdAt: string }>;
+  reports: Array<{ id: number; type: string; startDate: string; endDate: string; createdAt: string }>;
   selectedReportId: number | null;
   selectedReportUrl: string | null;
   loading: boolean;
@@ -27,30 +27,46 @@ interface DecodedToken {
 
 export const generateReport = createAsyncThunk(
   'report/generateReport',
-  async ({ startDate, endDate, reportType, fileFormat }: { startDate: string, endDate: string, reportType: string, fileFormat: string }, { rejectWithValue }) => {
+  async (
+    {
+      startDate,
+      endDate,
+      reportType,
+      fileFormat,
+      symptomIds,
+      medicationIds,
+    }: {
+      startDate: string;
+      endDate: string;
+      reportType: string;
+      fileFormat: string;
+      symptomIds?: number[];
+      medicationIds?: number[];
+    },
+    { rejectWithValue }
+  ) => {
     try {
       const token = Cookies.get('authToken');
       if (!token) throw new Error('Токен не найден в cookies');
 
       const url = `http://localhost:5001/api/reports/${reportType}/${fileFormat}`;
-      const response = await axios.post(url, { startDate, endDate }, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: fileFormat === 'excel' ? 'blob' : 'json',
-      });
-
-      console.log('Response headers:', response.headers);
+      const response = await axios.post(
+        url,
+        { startDate, endDate, symptomIds, medicationIds },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: fileFormat === 'excel' ? 'blob' : 'json',
+        }
+      );
 
       if (fileFormat === 'excel') {
         const reportId = response.headers['x-report-id'];
         if (!reportId) throw new Error('Report ID not found in headers');
 
-        console.log('Received reportId:', reportId);
-
-        // Создаем временный URL для скачивания файла
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `symptom_report_${Date.now()}.xlsx`);
+        link.setAttribute('download', `${reportType}_report_${Date.now()}.xlsx`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -163,7 +179,7 @@ const reportSlice = createSlice({
       })
       .addCase(generateReport.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ? action.payload.toString() : 'Неизвестная ошибка'; // Преобразуем в строку
+        state.error = action.payload ? action.payload.toString() : 'Неизвестная ошибка';
       })
       .addCase(fetchUserReports.pending, (state) => {
         state.loading = true;
@@ -195,7 +211,7 @@ const reportSlice = createSlice({
       })
       .addCase(deleteReport.fulfilled, (state, action) => {
         state.loading = false;
-        state.reports = state.reports.filter(report => report.id !== action.payload);
+        state.reports = state.reports.filter((report) => report.id !== action.payload);
         if (state.selectedReportId === action.payload) {
           state.selectedReportId = null;
           state.selectedReportUrl = null;

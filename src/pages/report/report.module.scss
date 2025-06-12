@@ -38,7 +38,9 @@
 .inputReportStartDate,
 .inputReportEndDate,
 .inputReportType,
-.inputReportFormat {
+.inputReportFormat,
+.inputReportSymptoms,
+.inputReportMedications { // Added new classes to match existing styling
   display: flex;
   flex-direction: column;
   margin-bottom: 15px;
@@ -50,6 +52,54 @@
     margin-bottom: 5px;
   }
 
+  // Custom styling for Select component
+  .css-2b097c-container { // Targets the root container of react-select
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fafafa;
+    transition: all 0.3s ease;
+    outline: none;
+
+    &:hover {
+      border-color: #007bff;
+    }
+
+    &:focus-within {
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+    }
+  }
+
+  .css-1nmdiq5-menu { // Targets the dropdown menu
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .css-1g6gooi { // Targets the control (input area)
+    padding: 10px;
+    min-height: 40px; // Ensures consistent height with other inputs
+  }
+
+  .css-1ok73x7 { // Targets the placeholder
+    color: #999;
+    text-align: center;
+  }
+
+  .css-1u9des2 { // Targets the multi-value label
+    background-color: #e6f0ff;
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin: 2px;
+    font-size: 12px;
+  }
+}
+
+.inputReportStartDate,
+.inputReportEndDate,
+.inputReportType,
+.inputReportFormat {
   input,
   select {
     padding: 10px;
@@ -60,7 +110,6 @@
     transition: all 0.3s ease;
     outline: none;
     text-align: center;
-
 
     &:hover {
       border-color: #007bff;
@@ -94,7 +143,6 @@
   width: 100%; /* Убедимся, что кнопка помещается в контейнер */
   max-width: 2000px; /* Ограничиваем максимальную ширину */
   text-align: center;
-
 
   &:hover {
     background-color: rgba(45, 105, 115, 0.9490196078); /* Темнее при наведении */
@@ -198,7 +246,8 @@
     flex-direction: column;
   }
 
-  .leftPanel, .rightPanel {
+  .leftPanel,
+  .rightPanel {
     width: 100%;
     padding: 15px;
   }
@@ -225,7 +274,8 @@
     font-size: 15px;
   }
 
-  .zagolovokReport, .zagolovokReportsList {
+  .zagolovokReport,
+  .zagolovokReportsList {
     font-size: 20px;
   }
 
@@ -234,14 +284,32 @@
     padding: 10px;
   }
 
-  .inputReportStartDate, .inputReportEndDate, .inputReportType {
+  .inputReportStartDate,
+  .inputReportEndDate,
+  .inputReportType,
+  .inputReportFormat,
+  .inputReportSymptoms,
+  .inputReportMedications { // Added mobile styles for new fields
     margin-bottom: 10px;
+
+    label {
+      font-size: 14px;
+    }
+
+    .css-2b097c-container { // Adjust Select container for mobile
+      font-size: 14px;
+      padding: 8px;
+      min-height: 36px; // Slightly reduced height for mobile
+    }
+
+    .css-1g6gooi { // Adjust control for mobile
+      padding: 8px;
+      min-height: 36px;
+    }
   }
 
   .deleteIcon {
     font-size: 18px;
     margin-left: 10px;
   }
-
-  
 }
