@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-// Интерфейсы (оставляем без изменений)
+// Интерфейсы
 export interface Symptom {
   id: number;
   name: string;
@@ -29,10 +29,14 @@ interface NewSymptomRecord {
 
 interface NewMedicationRecord {
   recordDate: string;
-  dosage: number | null;
+  dosage: string | null;
   notes: string | null;
   userId: string;
   medicationId: number;
+  isFuture?: boolean;
+  repeatType?: string;
+  repeatInterval?: number;
+  repeatEndDate?: string;
 }
 
 interface NewAnalysisRecord {
@@ -46,11 +50,16 @@ interface UpdateRecord {
   id: string;
   recordDate?: string;
   weight?: number;
-  dosage?: number | null | undefined;
+  dosage?: string | null;
   notes?: string | null;
   userId: string;
   symptomId?: number;
   medicationId?: number;
+  isFuture?: boolean;
+  status?: string;
+  repeatType?: string;
+  repeatInterval?: number;
+  repeatEndDate?: string;
 }
 
 export interface Analysis {
@@ -63,8 +72,29 @@ export interface Analysis {
   updatedAt: string;
 }
 
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  allDay: boolean;
+  extendedProps: {
+    type: 'symptom' | 'medication' | 'analysis';
+    notes?: string | null;
+    weight?: number;
+    dosage?: string | null;
+    symptomId?: number;
+    medicationId?: number;
+    isFuture?: boolean;
+    status?: string;
+    repeatType?: string | null;
+    repeatInterval?: number | null;
+    repeatEndDate?: string | null;
+    filePath?: string;
+  };
+}
+
 export interface CalendarState {
-  events: any[];
+  events: CalendarEvent[];
   symptoms: Symptom[];
   medications: Medication[];
   analyses: Analysis[];
@@ -85,7 +115,7 @@ const initialState: CalendarState = {
 
 const token = Cookies.get('authToken');
 
-// Существующие thunk (оставляем без изменений)
+// Существующие thunk (без изменений, кроме двух обновленных)
 export const getAllHealthRecords = createAsyncThunk(
   'calendar/getAllHealthRecords',
   async (userId: string) => {
@@ -198,7 +228,7 @@ export const deleteRecord = createAsyncThunk(
   }
 );
 
-// Новые thunk с типизацией rejectValue
+// Новые thunk с типизацией rejectValue (без изменений)
 export const getUserAnalyses = createAsyncThunk<
   Analysis[],
   string,
@@ -289,16 +319,13 @@ const calendarSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      // Существующие обработчики (оставляем без изменений)
       .addCase(getAllHealthRecords.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(getAllHealthRecords.fulfilled, (state, action) => {
         state.loading = false;
-        // Сохраняем существующие события типа 'analysis'
         const existingAnalyses = state.events.filter((event) => event.extendedProps.type === 'analysis');
-        // Обновляем события симптомов и лекарств
         const newEvents = action.payload.map((record: any) => {
           let title = '';
           const recordDate = new Date(record.recordDate);
@@ -320,6 +347,11 @@ const calendarSlice = createSlice({
               dosage: record.dosage,
               symptomId: record.symptomId,
               medicationId: record.medicationId,
+              isFuture: record.isFuture || false,
+              status: record.status || 'planned',
+              repeatType: record.repeatType || null,
+              repeatInterval: record.repeatInterval || null,
+              repeatEndDate: record.repeatEndDate || null,
             },
           };
         });
@@ -329,6 +361,7 @@ const calendarSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Не удалось загрузить записи';
       })
+      // Остальные обработчики остаются без изменений
       .addCase(getAllSymptoms.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -433,6 +466,11 @@ const calendarSlice = createSlice({
               notes: updatedEvent.notes,
               symptomId: updatedEvent.symptomId,
               medicationId: updatedEvent.medicationId,
+              isFuture: updatedEvent.isFuture || false,
+              status: updatedEvent.status || 'planned',
+              repeatType: updatedEvent.repeatType || null,
+              repeatInterval: updatedEvent.repeatInterval || null,
+              repeatEndDate: updatedEvent.repeatEndDate || null,
             },
           };
         }
@@ -469,7 +507,6 @@ const calendarSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Не удалось удалить запись';
       })
-      // Новые обработчики для анализов
       .addCase(getUserAnalyses.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -477,9 +514,7 @@ const calendarSlice = createSlice({
       .addCase(getUserAnalyses.fulfilled, (state, action) => {
         state.loading = false;
         state.analyses = action.payload;
-        // Фильтруем существующие события, чтобы избежать дублирования анализов
         state.events = state.events.filter((event) => event.extendedProps.type !== 'analysis');
-        // Добавляем новые анализы
         state.events = [
           ...state.events,
           ...action.payload.map((analysis: Analysis) => ({
@@ -488,7 +523,7 @@ const calendarSlice = createSlice({
             start: analysis.recordDate,
             allDay: true,
             extendedProps: {
-              type: 'analysis',
+              type: 'analysis' as const, // Явно указываем, что это литерал типа 'analysis'
               filePath: analysis.filePath,
             },
           })),
@@ -505,9 +540,7 @@ const calendarSlice = createSlice({
       .addCase(createAnalysis.fulfilled, (state, action) => {
         state.loading = false;
         state.analyses.push(action.payload.analysis);
-        // Удаляем старые анализы из событий, чтобы избежать дублирования
         state.events = state.events.filter((event) => event.extendedProps.type !== 'analysis');
-        // Добавляем все анализы заново, включая новый
         state.analyses.forEach((analysis) => {
           state.events.push({
             id: String(analysis.id),
@@ -532,7 +565,7 @@ const calendarSlice = createSlice({
       .addCase(deleteAnalysis.fulfilled, (state, action) => {
         state.loading = false;
         state.analyses = state.analyses.filter((analysis) => analysis.id !== parseInt(action.payload.id));
-        state.events = state.events.filter((event) => event.id !== parseInt(action.payload.id));
+        state.events = state.events.filter((event) => event.id !== action.payload.id);
       })
       .addCase(deleteAnalysis.rejected, (state, action) => {
         state.loading = false;

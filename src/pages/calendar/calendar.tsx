@@ -72,6 +72,11 @@ const Calendar: React.FC = () => {
   const [tempSelectedSymptoms, setTempSelectedSymptoms] = useState<Option[]>([]);
   const [tempSelectedMedications, setTempSelectedMedications] = useState<Option[]>([]);
 
+  const [isFuture, setIsFuture] = useState<boolean>(false); // Флаг "Будущее лекарство"
+  const [repeatType, setRepeatType] = useState<string>(''); // Тип повторения
+  const [repeatInterval, setRepeatInterval] = useState<number | null>(null); // Интервал повторения
+  const [repeatEndDate, setRepeatEndDate] = useState<string>(''); // Дата окончания повторения
+
   useEffect(() => {
     const token = Cookies.get('authToken');
     if (token) {
@@ -93,6 +98,18 @@ const Calendar: React.FC = () => {
         });
     }
   }, [dispatch]);
+
+  useEffect(() => {
+    if (repeatType === 'daily') {
+      setRepeatInterval(1); // Ежедневно
+    } else if (repeatType === 'weekly') {
+      setRepeatInterval(7); // Еженедельно
+    } else if (repeatType === 'everyXdays') {
+      setRepeatInterval(null); // Пользователь вводит интервал
+    } else {
+      setRepeatInterval(null); // Сброс при отсутствии выбора
+    }
+  }, [repeatType]);
 
   const handleDatesSet = (dateInfo: DatesSetArg) => {
     const today = new Date();
@@ -384,43 +401,53 @@ const Calendar: React.FC = () => {
   };
 
   const handleSaveMedication = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (selectedDate && selectedMedication !== null && userId) {
-      const selectedMedicationName = medications.find((m: Medication) => m.id === selectedMedication)?.name || '';
-      const calendarApi = selectedDate.view.calendar;
-      const recordDateWithTime = `${selectedDate.startStr.split('T')[0]}T${medicationTime}:00`;
-      const quantityText = quantity !== null ? ` - Количество: ${quantity}` : '';
-      const dosageText = dosage !== null ? ` - Дозировка: ${dosage} мг` : '';
-      const newEvent = {
-        id: createEventId(),
-        title: `Лекарство: ${selectedMedicationName} - ${medicationTime}${quantityText}${dosageText}`,
-        start: recordDateWithTime,
-        end: selectedDate.endStr,
-        allDay: false,
-        extendedProps: {
-          type: 'medication',
-          medicationId: selectedMedication,
-          notes: quantity !== null ? quantity.toString() : null,
-          dosage: dosage,
-        },
-      };
-      calendarApi.addEvent(newEvent);
-  
-      const newRecord = {
-        recordDate: recordDateWithTime,
-        dosage: dosage !== null ? dosage : null,
-        notes: quantity !== null ? quantity.toString() : null,
-        userId,
+  event.preventDefault();
+  if (selectedDate && selectedMedication !== null && userId) {
+    const selectedMedicationName = medications.find((m: Medication) => m.id === selectedMedication)?.name || '';
+    const calendarApi = selectedDate.view.calendar;
+    const recordDate = new Date(selectedDate.startStr); // Берем дату из selectedDate
+    const [hours, minutes] = medicationTime.split(':').map(Number); // Разбираем время
+    recordDate.setHours(hours, minutes, 0, 0); // Устанавливаем точное время
+    const recordDateWithTime = recordDate.toISOString(); // Получаем ISO строку с временем
+
+    const quantityText = quantity !== null ? ` - Количество: ${quantity}` : '';
+    const dosageText = dosage !== null ? ` - Дозировка: ${dosage} мг` : '';
+    const newEvent = {
+      id: createEventId(),
+      title: `Лекарство: ${selectedMedicationName} - ${medicationTime}${quantityText}${dosageText}`,
+      start: recordDateWithTime,
+      end: selectedDate.endStr,
+      allDay: false,
+      extendedProps: {
+        type: 'medication',
         medicationId: selectedMedication,
-      };
-      await dispatch(createMedicationRecord(newRecord)).unwrap();
-      await Promise.all([
-        dispatch(getAllHealthRecords(userId)).unwrap(),
-        dispatch(getUserAnalyses(userId)).unwrap(),
-      ]);
-      closeMedicationModal();
-    }
-  };
+        notes: quantity !== null ? quantity.toString() : null,
+        dosage: dosage,
+      },
+    };
+    calendarApi.addEvent(newEvent);
+
+    const newRecord = {
+      recordDate: recordDateWithTime,
+      dosage: dosage !== null ? String(dosage) : null,
+      notes: quantity !== null ? quantity.toString() : null,
+      userId,
+      medicationId: selectedMedication,
+      ...(isFuture && {
+        isFuture: true,
+        repeatType: repeatType || undefined,
+        repeatInterval: repeatInterval || undefined,
+        repeatEndDate: repeatEndDate || undefined,
+      }),
+    };
+    await dispatch(createMedicationRecord(newRecord)).unwrap();
+    await Promise.all([
+      dispatch(getAllHealthRecords(userId)).unwrap(),
+      dispatch(getUserAnalyses(userId)).unwrap(),
+    ]);
+    closeMedicationModal();
+  }
+};
 
   const handleSaveAnalysis = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -543,23 +570,23 @@ const Calendar: React.FC = () => {
   };
 
   const handleSaveMedicalEdit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (selectedEvent && selectedMedication !== null && userId) {
-      const recordDateWithTime = `${selectedEvent.start!.toISOString().split('T')[0]}T${medicationTime}:00`;
-      const updatedRecord = {
-        id: selectedEvent.id,
-        recordDate: recordDateWithTime,
-        dosage: dosage !== null ? dosage : null,
-        notes: quantity !== null ? quantity.toString() : null,
-        userId,
-        symptomId: undefined,
-        medicationId: selectedMedication,
-      };
-      await dispatch(updateRecord(updatedRecord)).unwrap();
-      dispatch(getAllHealthRecords(userId));
-      closeUpdateMedicalEventModal();
-    }
-  };
+  event.preventDefault();
+  if (selectedEvent && selectedMedication !== null && userId) {
+    const recordDateWithTime = `${selectedEvent.start!.toISOString().split('T')[0]}T${medicationTime}:00`;
+    const updatedRecord = {
+      id: selectedEvent.id,
+      recordDate: recordDateWithTime,
+      dosage: dosage !== null ? String(dosage) : null, // Convert to string
+      notes: quantity !== null ? quantity.toString() : null,
+      userId: String(userId), // Ensure string
+      symptomId: undefined,
+      medicationId: selectedMedication,
+    };
+    await dispatch(updateRecord(updatedRecord)).unwrap();
+    dispatch(getAllHealthRecords(userId));
+    closeUpdateMedicalEventModal();
+  }
+};
 
   const getKpColor = (kpIndex: number | null) => {
     if (kpIndex === null) return '#000000';
@@ -573,40 +600,81 @@ const Calendar: React.FC = () => {
     <div className="demo-app">
       <div className="demo-app-main">
         <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'filters dayGridMonth,timeGridWeek,timeGridDay',
-          }}
-          customButtons={{
-            filters: {
-              text: 'Фильтры',
-              click: handleFiltersClick,
-            },
-          }}
-          initialView="dayGridMonth"
-          editable={true}
-          selectable={true}
-          selectMirror={true}
-          dayMaxEvents={true}
-          weekends={weekendsVisible}
-          events={filteredEvents}
-          select={handleDateSelect}
-          eventClick={handleEventClick}
-          eventsSet={handleEvents}
-          locale={ruLocale}
-          contentHeight={800}
-          firstDay={1}
-          eventTimeFormat={{
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          }}
-          datesSet={handleDatesSet}
-          dateClick={handleDateClick}
-        />
+  ref={calendarRef}
+  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+  headerToolbar={{
+    left: 'prev,next today',
+    center: 'title',
+    right: 'filters dayGridMonth,timeGridWeek,timeGridDay',
+  }}
+  customButtons={{
+    filters: {
+      text: 'Фильтры',
+      click: handleFiltersClick,
+    },
+  }}
+  initialView="dayGridMonth"
+  editable={true}
+  selectable={true}
+  selectMirror={true}
+  dayMaxEvents={true}
+  weekends={weekendsVisible}
+  events={filteredEvents}
+  select={handleDateSelect}
+  eventClick={handleEventClick}
+  eventsSet={handleEvents}
+  locale={ruLocale}
+  contentHeight={800}
+  firstDay={1}
+  eventTimeFormat={{
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }}
+  datesSet={handleDatesSet}
+  dateClick={handleDateClick}
+  eventContent={(arg) => {
+  const eventType = arg.event.extendedProps.type;
+  const eventStart = arg.event.start ? new Date(arg.event.start) : new Date();
+  const now = new Date(); // Точное текущее время
+
+  // Проверяем, является ли событие будущим изначально и истекло ли его время
+  const isOriginallyFuture = arg.event.extendedProps.isFuture || false;
+  const isPastNow = eventStart <= now;
+
+  let backgroundColor = 'rgba(80, 150, 71, 0.78)'; // Стандартный цвет по умолчанию для анализов
+  
+  if (eventType === 'medication') {
+    if (isOriginallyFuture && isPastNow) {
+      backgroundColor = 'rgba(246, 50, 50, 0.91)'; // Перекрашиваем в прошедшее/текущее после истечения времени
+    } else if (isOriginallyFuture && !isPastNow) {
+      backgroundColor = 'rgba(170, 81, 68, 0.77)'; // Остается будущим, если время не истекло
+    } else if (!isOriginallyFuture && isPastNow) {
+      backgroundColor = 'rgba(246, 50, 50, 0.91)'; // Прошедшее/текущее без флага isFuture
+    }
+  } else if (eventType === 'symptom') {
+    if (isPastNow) {
+      backgroundColor = 'rgba(81, 167, 180, 0.77)'; // Светло-красный для прошедших/текущих симптомов
+    }
+    if (!isPastNow) {
+      backgroundColor = 'rgba(81, 167, 180, 0.77)'; // Светло-красный для прошедших/текущих симптомов
+    }
+  }
+
+  // Форматируем отображение в зависимости от типа события
+  const content = eventType === 'analysis' 
+    ? `<div style="background-color: ${backgroundColor}; padding: 2px 4px; border-radius: 0px; color: #fff;">${arg.event.title}</div>`
+    : `<div style="background-color: ${backgroundColor}; padding: 2px 4px; border-radius: 3px; color: #fff;">${eventStart.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })} ${arg.event.title}</div>`;
+
+  return {
+    html: content,
+  };
+}}
+/>
 
         {isFilterPanelOpen && (
           <div
@@ -1114,175 +1182,233 @@ const Calendar: React.FC = () => {
       </Modal>
 
       <Modal
-        isOpen={isMedicationModalOpen}
-        onRequestClose={closeMedicationModal}
-        contentLabel="Input Medication Data Modal"
-        style={{
-          content: {
-            fontFamily: "'Montserrat', sans-serif",
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
-            padding: '20px',
-            width: '400px',
-            maxWidth: '90%',
-            minHeight: 'auto',
-            textAlign: 'center',
-            position: 'static',
-          },
-          overlay: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9999,
-          },
+  isOpen={isMedicationModalOpen}
+  onRequestClose={closeMedicationModal}
+  contentLabel="Input Medication Data Modal"
+  style={{
+    content: {
+      fontFamily: "'Montserrat', sans-serif",
+      backgroundColor: '#fff',
+      borderRadius: '12px',
+      boxShadow: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+      padding: '20px',
+      width: '400px',
+      maxWidth: '90%',
+      minHeight: 'auto',
+      textAlign: 'center',
+      position: 'static',
+    },
+    overlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999,
+    },
+  }}
+>
+  <h2
+    style={{
+      fontSize: '24px',
+      fontWeight: 800,
+      color: '#333',
+      marginBottom: '15px',
+      textTransform: 'uppercase',
+      letterSpacing: '1px',
+    }}
+  >
+    Введите данные для лекарства
+  </h2>
+  <form onSubmit={handleSaveMedication}>
+    <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+      <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+        Название лекарства:
+      </label>
+      <Select
+        value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
+        onChange={handleMedicationChange}
+        options={medicationOptions}
+        placeholder="Выберите лекарство"
+        isSearchable
+        styles={{
+          control: (provided) => ({
+            ...provided,
+            borderRadius: '7px',
+            border: 'none',
+            backgroundColor: '#eee',
+            padding: '5px',
+            fontSize: '16px',
+          }),
+          menu: (provided) => ({
+            ...provided,
+            borderRadius: '7px',
+          }),
         }}
+      />
+      <p
+        style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px', fontSize: '14px' }}
+        onClick={() => openAddNewModal('medication')}
       >
-        <h2
-          style={{
-            fontSize: '24px',
-            fontWeight: 800,
-            color: '#333',
-            marginBottom: '15px',
-            textTransform: 'uppercase',
-            letterSpacing: '1px',
-          }}
-        >
-          Введите данные для лекарства
-        </h2>
-        <form onSubmit={handleSaveMedication}>
-          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
-            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
-              Название лекарства:
-            </label>
-            <Select
-              value={medicationOptions.find((option: Option) => option.value === selectedMedication)}
-              onChange={handleMedicationChange}
-              options={medicationOptions}
-              placeholder="Выберите лекарство"
-              isSearchable
-              styles={{
-                control: (provided) => ({
-                  ...provided,
-                  borderRadius: '7px',
-                  border: 'none',
-                  backgroundColor: '#eee',
-                  padding: '5px',
-                  fontSize: '16px',
-                }),
-                menu: (provided) => ({
-                  ...provided,
-                  borderRadius: '7px',
-                }),
-              }}
-            />
-            <p
-              style={{ color: 'blue', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px', fontSize: '14px' }}
-              onClick={() => openAddNewModal('medication')}
-            >
-              Не нашли нужного? Добавить своё
-            </p>
-          </div>
-          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
-            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
-              Время приема:
-            </label>
-            <input
-              type="time"
-              value={medicationTime}
-              onChange={handleMedicationTimeChange}
-              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
-            />
-          </div>
-          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
-            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
-              Количество (шт) (необязательно):
-            </label>
-            <input
-              type="number"
-              value={quantity ?? ''}
-              onChange={handleQuantityChange}
-              placeholder="Количество"
-              min="0"
-              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
-            />
-          </div>
-          <div style={{ marginBottom: '15px', textAlign: 'left' }}>
-            <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
-              Дозировка (мг) (необязательно):
-            </label>
-            <input
-              type="number"
-              value={dosage ?? ''}
-              onChange={handleDosageChange}
-              placeholder="Дозировка"
-              min="0"
-              style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
-            />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
-            <button
-              style={{
-                borderRadius: '20px',
-                border: '1px solid #ff4b2b',
-                backgroundColor: '#ff4b2b',
-                color: '#ffffff',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                padding: '12px 45px',
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-                cursor: 'pointer',
-                transition: 'transform 80ms ease-in',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e6391a';
-                e.currentTarget.style.transform = 'translateY(-3px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#ff4b2b';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-              type="button"
-              onClick={closeMedicationModal}
-            >
-              Закрыть
-            </button>
-            <button
-              style={{
-                borderRadius: '20px',
-                border: '1px solid #6eb2bada',
-                backgroundColor: '#0b7c89ae',
-                color: '#ffffff',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                padding: '12px 45px',
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-                cursor: 'pointer',
-                transition: 'transform 80ms ease-in',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#0b7c89';
-                e.currentTarget.style.transform = 'translateY(-3px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#0b7c89ae';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-              type="submit"
-            >
-              Сохранить
-            </button>
-          </div>
-        </form>
-      </Modal>
+        Не нашли нужного? Добавить своё
+      </p>
+    </div>
+
+    <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+      <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+        Будущее лекарство:
+      </label>
+      <input
+        type="checkbox"
+        checked={isFuture}
+        onChange={(e) => setIsFuture(e.target.checked)}
+        style={{ marginRight: '10px' }}
+      />
+      <span>{isFuture ? 'Да' : 'Да'}</span>
+    </div>
+
+    {isFuture && (
+  <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+    <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+      Тип повторения:
+    </label>
+    <select
+      value={repeatType}
+      onChange={(e) => setRepeatType(e.target.value)}
+      style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+    >
+      <option value="">Выберите тип</option>
+      <option value="daily">Ежедневно</option>
+      <option value="weekly">Еженедельно</option>
+      <option value="everyXdays">Каждые X дней</option>
+    </select>
+
+    {repeatType === 'everyXdays' && (
+      <div style={{ marginTop: '10px' }}>
+        <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+          Интервал повторения (дни):
+        </label>
+        <input
+          type="number"
+          value={repeatInterval ?? ''}
+          onChange={(e) => setRepeatInterval(e.target.value ? Number(e.target.value) : null)}
+          placeholder="Введите интервал"
+          min="1"
+          style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+        />
+      </div>
+    )}
+
+    <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginTop: '10px', marginBottom: '5px' }}>
+      Дата окончания:
+    </label>
+    <input
+      type="date"
+      value={repeatEndDate}
+      onChange={(e) => setRepeatEndDate(e.target.value)}
+      style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+    />
+  </div>
+)}
+
+    <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+      <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+        Время приема:
+      </label>
+      <input
+        type="time"
+        value={medicationTime}
+        onChange={handleMedicationTimeChange}
+        style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+      />
+    </div>
+    <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+      <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+        Количество (шт) (необязательно):
+      </label>
+      <input
+        type="number"
+        value={quantity ?? ''}
+        onChange={handleQuantityChange}
+        placeholder="Количество"
+        min="0"
+        style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+      />
+    </div>
+    <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+      <label style={{ fontSize: '16px', fontWeight: 600, color: '#444', display: 'block', marginBottom: '5px' }}>
+        Дозировка (мг) (необязательно):
+      </label>
+      <input
+        type="number"
+        value={dosage ?? ''}
+        onChange={handleDosageChange}
+        placeholder="Дозировка"
+        min="0"
+        style={{ width: '100%', padding: '12px 15px', borderRadius: '7px', border: 'none', backgroundColor: '#eee', fontSize: '16px' }}
+      />
+    </div>
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+      <button
+        style={{
+          borderRadius: '20px',
+          border: '1px solid #ff4b2b',
+          backgroundColor: '#ff4b2b',
+          color: '#ffffff',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          padding: '12px 45px',
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          transition: 'transform 80ms ease-in',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#e6391a';
+          e.currentTarget.style.transform = 'translateY(-3px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#ff4b2b';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
+        type="button"
+        onClick={closeMedicationModal}
+      >
+        Закрыть
+      </button>
+      <button
+        style={{
+          borderRadius: '20px',
+          border: '1px solid #6eb2bada',
+          backgroundColor: '#0b7c89ae',
+          color: '#ffffff',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          padding: '12px 45px',
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          transition: 'transform 80ms ease-in',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#0b7c89';
+          e.currentTarget.style.transform = 'translateY(-3px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#0b7c89ae';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
+        type="submit"
+      >
+        Сохранить
+      </button>
+    </div>
+  </form>
+</Modal>
 
       <Modal
         isOpen={isEventModalOpen}
