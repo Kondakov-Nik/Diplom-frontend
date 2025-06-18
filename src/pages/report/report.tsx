@@ -31,7 +31,7 @@ const Report: React.FC = () => {
 
     Promise.all([
       axios
-        .get(`http://localhost:5001/api/symptom/user/${userId}`, {
+        .get(`http://localhost:5001/api/symptom/all/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => {
@@ -39,7 +39,7 @@ const Report: React.FC = () => {
         })
         .catch((err) => console.error('Symptoms fetch error:', err)),
       axios
-        .get(`http://localhost:5001/api/medication/user/${userId}`, {
+        .get(`http://localhost:5001/api/medication/all/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => {
